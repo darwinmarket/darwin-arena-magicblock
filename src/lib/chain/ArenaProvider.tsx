@@ -19,6 +19,7 @@ import { arenaProgram, createSessionIx, ix, type ArenaProgram } from "./arena";
 import { BASE_RPC, DELEGATION_PROGRAM_ID, ER_RPC, PROGRAM_ID, STATUS, STAKES } from "./constants";
 import { commitment, duelView, randomSalt, toWeights, type DuelView, type Leg } from "./duel";
 import { ataOf, configPda, duelPda, profilePda, sessionTokenPda, tablePda } from "./pdas";
+import { PracticeBotAutopilot, summonPracticeBot } from "./practiceBot";
 import {
   loadBasket,
   loadCurrentDuel,
@@ -57,6 +58,8 @@ interface ArenaCtx {
   commitBasket: (duelId: number, legs: Leg[]) => Promise<string>;
   rebalance: (duelId: number, weights: number[]) => Promise<string>;
   claim: (duelId: number) => Promise<string | null>;
+  /// Seat a practice bot (runs in this browser) in the duel waiting at the table.
+  summonBot: (duelId: number) => Promise<string>;
   currentDuel: number | null;
   setCurrentDuel: (id: number | null) => void;
   /// Every step of the session/rollup flow, for the arena feed.
@@ -334,6 +337,16 @@ export function ArenaProvider({ children }: { children: ReactNode }) {
     [publicKey, config, base, er, program, erProgram, sendSession, sendWallet, refresh],
   );
 
+  const summonBot = useCallback(
+    async (duelId: number) => {
+      if (!publicKey) throw new Error("Connect a wallet first");
+      const sig = await summonPracticeBot({ base, program, wallet: publicKey, duelId, fundWith: (ixs, label) => sendWallet(ixs, label) });
+      note("Practice bot sat down ✓");
+      return sig;
+    },
+    [publicKey, base, program, sendWallet, note],
+  );
+
   const value: ArenaCtx = {
     base,
     er,
@@ -352,6 +365,7 @@ export function ArenaProvider({ children }: { children: ReactNode }) {
     commitBasket,
     rebalance,
     claim,
+    summonBot,
     currentDuel,
     setCurrentDuel,
     activity,
@@ -360,6 +374,7 @@ export function ArenaProvider({ children }: { children: ReactNode }) {
     <Ctx.Provider value={value}>
       {children}
       <DuelAutopilot erProgram={erProgram} />
+      <PracticeBotAutopilot erProgram={erProgram} />
     </Ctx.Provider>
   );
 }
