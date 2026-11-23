@@ -498,7 +498,7 @@ pub mod darwin_arena {
         let d = &mut ctx.accounts.duel;
         require!(d.status == STATUS_LIVE, ArenaError::BadStatus);
         let slot = d.session_slot(&ctx.accounts.signer.key(), now)?;
-        d.rebalance(slot, weights)?;
+        d.rebalance(slot, weights, now)?;
         Ok(())
     }
 
