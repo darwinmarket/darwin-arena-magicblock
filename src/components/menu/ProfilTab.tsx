@@ -9,6 +9,9 @@ import { PlayerCard, bannerCss } from "@/components/PlayerCard";
 import { Panel, ProgressBar, Tabs, Tooltip } from "@/components/ui";
 import { useArena } from "@/lib/chain/ArenaProvider";
 import { badgesFor } from "@/lib/chain/badges";
+import { useTrophies } from "@/lib/chain/hooks";
+import { toLegs } from "@/lib/chain/duel";
+import { duelUrl, explorerAddress } from "@/lib/share";
 import { TIER_ORDER } from "@/lib/chain/rank";
 import { BANNERS as BANNER_DEFS } from "@/lib/mock";
 import { useProfile } from "@/lib/store";
@@ -18,13 +21,14 @@ const PAGE_SIZE = 8; // 4 colonnes x 2 rangées
 
 export function ProfilTab() {
   const { me, setBanner, setShowcaseSlot } = useProfile();
-  const { profile } = useArena();
+  const { profile, wallet } = useArena();
+  const trophies = useTrophies(wallet);
   // Badges and banners follow the on-chain profile: progress from its counters
   // and recent history, banners unlocked up to the current rank tier.
   const BADGES = useMemo(() => {
     const shares = typeof localStorage === "undefined" ? 0 : Number(localStorage.getItem("darwin-arena:shares") ?? 0);
-    return badgesFor(profile, { shares });
-  }, [profile]);
+    return badgesFor(profile, { shares, trophies: trophies.length });
+  }, [profile, trophies.length]);
   const tierIdx = TIER_ORDER.indexOf(me.rank.tier);
   const BANNERS = BANNER_DEFS.map((b) => ({ ...b, unlocked: TIER_ORDER.indexOf(b.rankIcon) <= tierIdx }));
   const [collection, setCollection] = useState<(typeof COLLECTION_TABS)[number]>("Badges");
@@ -75,6 +79,44 @@ export function ProfilTab() {
           )}
         </Panel>
       </div>
+
+      <Panel title="Trophies" right={<span className="text-xs text-neutral-400">winning baskets minted on chain</span>}>
+        {trophies.length === 0 ? (
+          <p className="text-sm text-neutral-400">Win a duel, then “Mint this basket” on the result screen.</p>
+        ) : (
+          <div className="grid gap-3 md:grid-cols-2">
+            {trophies.map((t) => (
+              <div key={t.address.toBase58()} className="rounded-2xl border border-[#ffc861]/40 bg-[#ffc861]/5 p-4">
+                <div className="flex items-baseline justify-between">
+                  <span className="font-display text-lg font-bold">Duel #{t.duelId}</span>
+                  <span className="font-display font-bold text-[#3dff8a]">
+                    {t.score >= 0 ? "+" : ""}
+                    {t.score.toFixed(2)}% <span className="text-xs text-neutral-400">vs {t.oppScore.toFixed(2)}%</span>
+                  </span>
+                </div>
+                <div className="mt-2 flex flex-wrap gap-1.5 text-xs">
+                  {toLegs(t.weights).map((l) => (
+                    <span key={l.symbol} className="rounded-md bg-white/10 px-1.5 py-0.5">
+                      {l.symbol} {l.weight}%
+                    </span>
+                  ))}
+                </div>
+                <div className="mt-2 text-xs text-neutral-400">
+                  {t.stake} USDC table · survived {t.mutations.join(", ") || "no mutation"}
+                </div>
+                <div className="mt-2 flex gap-3 text-xs font-bold uppercase">
+                  <a className="text-[#2de2ff]" href={duelUrl(t.duelId)} target="_blank" rel="noreferrer">
+                    Replay
+                  </a>
+                  <a className="text-[#2de2ff]" href={explorerAddress(t.address.toBase58())} target="_blank" rel="noreferrer">
+                    On explorer ↗
+                  </a>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Panel>
 
       <Panel title="Collection">
         <div className="mb-4">
