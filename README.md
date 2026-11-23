@@ -90,6 +90,16 @@ payout.
 | VRF program / ER queue | `Vrf1RNUjXmQGjmQrQLvJHs9SNkvDJEsRVFPkfSQUwGz` / `5hBR571xnXppuCPveTrctfTU7tJLSN94nq7kv7FRK5Tc` |
 | Price oracle | `PriCems5tHihc6UDXDjzjeawomAwBduWMGAi8ZUjppd` |
 
+## Play it, watch it, verify it
+
+- **Play:** https://darwin.market/arena-magicblock (devnet). Connect Phantom on devnet or the
+  built-in Burner wallet; the site's faucet sends devnet SOL automatically, and the first
+  **Find a match** mints test USDC in the same approval as the stake.
+- **Watch any duel:** `https://darwin.market/arena-magicblock/duel?id=<n>`: players, live scores,
+  baskets, VRF mutations, and explorer links to the duel account and every Solana
+  transaction of the duel (open, join, commitments, delegation, settlement, trophy).
+- **Program on the explorer:** [GnQC4Mjz…zFNp](https://explorer.solana.com/address/GnQC4MjzjS8AZvtj5VR64ovJupSm93yCiYz1ZkLyzFNp?cluster=devnet).
+
 ## Run it
 
 ```bash
