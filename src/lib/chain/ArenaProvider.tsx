@@ -18,7 +18,8 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { arenaProgram, createSessionIx, ix, type ArenaProgram } from "./arena";
 import { BASE_RPC, DELEGATION_PROGRAM_ID, ER_RPC, PROGRAM_ID, STATUS, STAKES } from "./constants";
 import { commitment, duelView, randomSalt, toWeights, type DuelView, type Leg } from "./duel";
-import { ataOf, configPda, duelPda, profilePda, sessionTokenPda, tablePda } from "./pdas";
+import { ataOf, configPda, duelPda, profilePda, sessionTokenPda } from "./pdas";
+import { seatAtTable } from "./matchmaking";
 import { PracticeBotAutopilot, summonPracticeBot } from "./practiceBot";
 import {
   loadBasket,
@@ -239,14 +240,6 @@ export function ArenaProvider({ children }: { children: ReactNode }) {
       if (!publicKey) throw new Error("Connect a wallet first");
     if (!config) throw new Error("Arena config not loaded yet, retry in a second");
       const tier = STAKES.indexOf(stake);
-      const table = await program.account.table.fetch(tablePda(tier));
-      if (!table.waiting.equals(PublicKey.default)) {
-        const w = await program.account.duel.fetch(table.waiting);
-        if (w.players[0].equals(publicKey)) {
-          setCurrentDuel(w.id.toNumber());
-          return w.id.toNumber();
-        }
-      }
       const ixs: TransactionInstruction[] = [];
       if (!(await base.getAccountInfo(profilePda(publicKey)))) {
         ixs.push(await ix.initProfile(program, publicKey, `${publicKey.toBase58().slice(0, 4)}…${publicKey.toBase58().slice(-4)}`));
@@ -258,16 +251,18 @@ export function ArenaProvider({ children }: { children: ReactNode }) {
         ixs.push(createAssociatedTokenAccountIdempotentInstruction(publicKey, usdcAta, publicKey, config.mint));
         ixs.push(await ix.faucet(program, publicKey, config.mint, usdcAta));
       }
-      let id: number;
-      if (!table.waiting.equals(PublicKey.default)) {
-        id = (await program.account.duel.fetch(table.waiting)).id.toNumber();
-        ixs.push(await ix.joinDuel(program, publicKey, tier, id, usdcAta, config.vault));
-      } else {
-        id = (await program.account.config.fetch(configPda())).duelCount.toNumber();
-        ixs.push(await ix.openDuel(program, publicKey, tier, id, usdcAta, config.vault));
-      }
       const session = await sessionIxs();
-      await sendWallet([...ixs, ...session.ixs], `Stake ${stake} USDC`, session.signer ? [session.signer] : []);
+      // Join the duel waiting at the table, or open one; if another player wins
+      // the race for that seat, re-read the table and go again.
+      const { id } = await seatAtTable({
+        program,
+        player: publicKey,
+        tier,
+        playerUsdc: usdcAta,
+        vault: config.vault,
+        extra: [...ixs, ...session.ixs],
+        send: (all) => sendWallet(all, `Stake ${stake} USDC`, session.signer ? [session.signer] : []),
+      });
       setCurrentDuel(id);
       refresh();
       return id;
