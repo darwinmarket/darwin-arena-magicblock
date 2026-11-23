@@ -365,12 +365,15 @@ pub mod darwin_arena {
         let duel_info = ctx.accounts.duel.to_account_info();
         let d = &mut ctx.accounts.duel;
         require!(d.status == STATUS_DRAFTING, ArenaError::BadStatus);
-        if d.reveal_deadline == 0 {
-            d.reveal_deadline = now + REVEAL_SECONDS;
-        }
+        // Nobody revealed yet: the window runs from the end of the draft.
+        let deadline = if d.reveal_deadline > 0 {
+            d.reveal_deadline
+        } else {
+            d.draft_deadline + DRAFT_GRACE + REVEAL_SECONDS
+        };
         let both = d.revealed[0] && d.revealed[1];
         if !both {
-            require!(now > d.reveal_deadline, ArenaError::NotRevealed);
+            require!(now > deadline, ArenaError::NotRevealed);
             d.status = STATUS_FINISHED;
             d.forfeit = true;
             d.winner = match (d.revealed[0], d.revealed[1]) {
