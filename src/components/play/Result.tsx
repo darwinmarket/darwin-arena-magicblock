@@ -9,6 +9,8 @@ import { useEffect, useState } from "react";
 import { useArena, type LiveDuel } from "@/lib/chain/ArenaProvider";
 import { STATUS } from "@/lib/chain/constants";
 import { usePlayer } from "@/lib/chain/hooks";
+import { trophyPda, duelPda } from "@/lib/chain/pdas";
+import { duelUrl, explorerAddress, shareOnX } from "@/lib/share";
 import { PlayerCard } from "@/components/PlayerCard";
 import { Panel, pct } from "@/components/ui";
 import { POINTS } from "@/lib/mock";
@@ -27,7 +29,9 @@ export function Result({
   live?: LiveDuel | null;
 }) {
   const { me } = useProfile();
-  const { claim, currentDuel, refresh } = useArena();
+  const { claim, currentDuel, refresh, mintTrophy, base } = useArena();
+  const [minted, setMinted] = useState<string | null>(null);
+  const [minting, setMinting] = useState(false);
   const [claiming, setClaiming] = useState(false);
   const [claimMsg, setClaimMsg] = useState<string | null>(null);
   const view = live?.view;
@@ -42,6 +46,35 @@ export function Result({
   useEffect(() => {
     if (settled) refresh();
   }, [settled, refresh]);
+  // An already minted trophy (another tab, a reload) shows as minted.
+  useEffect(() => {
+    if (currentDuel === null || !settled || !won) return;
+    const t = trophyPda(duelPda(currentDuel));
+    base.getAccountInfo(t).then((ai) => ai && setMinted(t.toBase58())).catch(() => {});
+  }, [currentDuel, settled, won, base]);
+  const onMint = async () => {
+    if (currentDuel === null) return;
+    setMinting(true);
+    try {
+      await mintTrophy(currentDuel);
+      setMinted(trophyPda(duelPda(currentDuel)).toBase58());
+    } catch (e) {
+      setClaimMsg(String((e as Error).message).slice(0, 120));
+    } finally {
+      setMinting(false);
+    }
+  };
+  const onShare = () => {
+    if (currentDuel === null) return;
+    shareOnX({
+      result: draw ? "DRAW" : won ? "SURVIVED" : "EXTINCT",
+      myScore: outcome.myScore,
+      oppScore: outcome.oppScore,
+      basket: outcome.myBasket,
+      prize: won ? Number(prize) : 0,
+      duelId: currentDuel,
+    });
+  };
   const onClaim = async () => {
     if (currentDuel === null) return;
     setClaiming(true);
@@ -93,8 +126,23 @@ export function Result({
             {(won || draw) && (
               <Action label={settled ? "Paid ✓" : claiming ? "Claiming…" : claimMsg ?? "Claim"} primary onClick={settled ? undefined : onClaim} />
             )}
-            <Action label="Mint this basket" />
-            <Action label="Share on X" />
+            {won && settled ? (
+              minted ? (
+                <a
+                  href={explorerAddress(minted)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-2xl bg-neutral-800 py-3 text-center font-black uppercase"
+                >
+                  Trophy minted ↗
+                </a>
+              ) : (
+                <Action label={minting ? "Minting…" : "Mint this basket"} onClick={minting ? undefined : onMint} />
+              )
+            ) : (
+              <Action label="Watch replay" onClick={() => currentDuel !== null && window.open(duelUrl(currentDuel), "_blank")} />
+            )}
+            <Action label="Share on X" onClick={onShare} />
             <Action label="Rematch" onClick={onRematch} />
             <Link href="/menu" className="col-span-2 rounded-2xl bg-neutral-800 py-3 text-center font-black uppercase">
               Back to dashboard
