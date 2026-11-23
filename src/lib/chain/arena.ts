@@ -90,6 +90,9 @@ export const ix = {
       .accountsPartial({ user, profile: profilePda(user), systemProgram: SystemProgram.programId })
       .instruction(),
 
+  setName: (p: ArenaProgram, user: PublicKey, name: string) =>
+    p.methods.setName(name).accountsPartial({ user, profile: profilePda(user) }).instruction(),
+
   openDuel: (p: ArenaProgram, player: PublicKey, tier: number, duelId: number, playerUsdc: PublicKey, vault: PublicKey) =>
     p.methods
       .openDuel(tier)
