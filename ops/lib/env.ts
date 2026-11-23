@@ -39,25 +39,41 @@ export async function send(
   connection: Connection,
   ixs: TransactionInstruction[],
   signers: Keypair[],
-  { tries = 60, delayMs = 500, label = "" } = {},
+  { tries = 60, delayMs = 500, label = "", attempts = 3 } = {},
 ): Promise<string> {
-  const tx = new Transaction().add(...ixs);
-  tx.feePayer = signers[0].publicKey;
-  tx.recentBlockhash = (await connection.getLatestBlockhash("confirmed")).blockhash;
-  tx.sign(...signers);
-  const sig = await connection.sendRawTransaction(tx.serialize(), { skipPreflight: true });
-  for (let i = 0; i < tries; i++) {
-    await sleep(delayMs);
-    const { value } = await connection.getSignatureStatuses([sig]);
-    const st = value[0];
-    if (!st) continue;
-    if (st.err) {
-      const logs = (await connection.getTransaction(sig, { maxSupportedTransactionVersion: 0, commitment: "confirmed" }).catch(() => null))?.meta?.logMessages;
-      throw new Error(`${label} ${sig} failed: ${JSON.stringify(st.err)}\n${(logs ?? []).slice(-12).join("\n")}`);
+  // Devnet occasionally drops a transaction: if it is still unknown when its
+  // wait runs out, sign it again with a fresh blockhash (the old one can no
+  // longer land once its blockhash expires, so this cannot double-apply).
+  let last = "";
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    const tx = new Transaction().add(...ixs);
+    tx.feePayer = signers[0].publicKey;
+    const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("confirmed");
+    tx.recentBlockhash = blockhash;
+    tx.sign(...signers);
+    const sig = await connection.sendRawTransaction(tx.serialize(), { skipPreflight: true });
+    last = sig;
+    for (let i = 0; i < tries; i++) {
+      await sleep(delayMs);
+      const { value } = await connection.getSignatureStatuses([sig]);
+      const st = value[0];
+      if (!st) continue;
+      if (st.err) {
+        const logs = (await connection.getTransaction(sig, { maxSupportedTransactionVersion: 0, commitment: "confirmed" }).catch(() => null))?.meta?.logMessages;
+        throw new Error(`${label} ${sig} failed: ${JSON.stringify(st.err)}\n${(logs ?? []).slice(-12).join("\n")}`);
+      }
+      if (st.confirmationStatus === "confirmed" || st.confirmationStatus === "finalized") return sig;
     }
-    if (st.confirmationStatus === "confirmed" || st.confirmationStatus === "finalized") return sig;
+    // Wait for the blockhash to expire before resending, so the first copy is dead.
+    while ((await connection.getBlockHeight("confirmed").catch(() => 0)) <= lastValidBlockHeight) {
+      const { value } = await connection.getSignatureStatuses([sig]);
+      if (value[0]?.confirmationStatus === "confirmed" || value[0]?.confirmationStatus === "finalized") return sig;
+      if (value[0]?.err) throw new Error(`${label} ${sig} failed: ${JSON.stringify(value[0].err)}`);
+      await sleep(2000);
+    }
+    console.log(`  ${label}: ${sig.slice(0, 16)}… dropped, resending (attempt ${attempt + 1})`);
   }
-  throw new Error(`${label} ${sig} not confirmed after ${(tries * delayMs) / 1000}s`);
+  throw new Error(`${label} ${last} not confirmed after ${attempts} attempts`);
 }
 
 export async function sendLogged(connection: Connection, label: string, ixs: TransactionInstruction[], signers: Keypair[]) {
