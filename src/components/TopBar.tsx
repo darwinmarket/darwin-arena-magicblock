@@ -57,7 +57,7 @@ export function TopBar() {
             <>
               {me.name}{" "}
               <span className="ml-2 text-white/60">{usdc === null ? "…" : usdc.toFixed(2)} USDC</span>
-              {sol !== null && sol < 0.05 && <span className="ml-2 text-[#ff3b5c]">low SOL</span>}
+              {sol !== null && sol < 0.02 && <span className="ml-2 text-[#ff3b5c]">low SOL</span>}
             </>
           ) : (
             "Connect wallet"
