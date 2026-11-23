@@ -2,13 +2,16 @@
 
 // Étape 2 : le draft. On compose son panier en 60 s : 3 à 5 actifs, poids par pas de 5 %, total 100 %.
 // Mise en page : en-tête (phase, chrono, adversaire qui drafte en caché) · panier à 5 emplacements
-// · marché en cartes de jeu. "Lock basket" = commit du hash on-chain (mock).
+// · marché en cartes de jeu. "Lock basket" = commit on-chain de sha256(panier + sel),
+// signé par la clé de session : l'adversaire ne voit rien avant le reveal sur le rollup.
 import { useEffect, useMemo, useState } from "react";
 import { GiPadlock, GiScales } from "react-icons/gi";
 import { GameTimer, TimeDrain } from "@/components/game/GameTimer";
 import { TokenCoin } from "@/components/game/TokenCoin";
 import { Panel } from "@/components/ui";
-import { ASSETS, DRAFT_SECONDS, OPPONENT } from "@/lib/mock";
+import { useArena, type LiveDuel } from "@/lib/chain/ArenaProvider";
+import { usePlayer, usePrices } from "@/lib/chain/hooks";
+import { ASSETS, DRAFT_SECONDS } from "@/lib/mock";
 import { formatPrice, sparkline, TOKEN_CLASSES, TOKENS, type TokenClass } from "@/lib/tokens";
 import type { Asset, BasketLeg } from "@/lib/types";
 
@@ -29,23 +32,57 @@ function equalize(legs: BasketLeg[]): BasketLeg[] {
   });
 }
 
-export function Draft({ onLocked, initial = [] }: { onLocked: (basket: BasketLeg[]) => void; initial?: BasketLeg[] }) {
+export function Draft({
+  onLocked,
+  initial = [],
+  live = null,
+}: {
+  onLocked: (basket: BasketLeg[]) => void;
+  initial?: BasketLeg[];
+  live?: LiveDuel | null;
+}) {
+  const { commitBasket, currentDuel } = useArena();
+  const prices = usePrices();
   const [legs, setLegs] = useState<BasketLeg[]>(initial);
   const [left, setLeft] = useState(DRAFT_SECONDS);
   const [filter, setFilter] = useState<TokenClass | "All">("All");
   const [oppPicks, setOppPicks] = useState(0);
+  const [locking, setLocking] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const total = legs.reduce((s, l) => s + l.weight, 0);
-  const valid = legs.length >= MIN_LEGS && legs.length <= MAX_LEGS && total === 100;
+  const mySlot = live?.mySlot ?? null;
+  const locked = mySlot !== null && !!live?.view.committed[mySlot];
+  const rivalLocked = mySlot !== null && !!live?.view.committed[1 - mySlot];
+  const OPPONENT = usePlayer(mySlot !== null ? live?.view.players[1 - mySlot] : null) ?? { name: "Rival" };
+  const valid = !locked && legs.length >= MIN_LEGS && legs.length <= MAX_LEGS && total === 100;
+  const deadline = live?.view.draftDeadline ?? 0;
 
   useEffect(() => {
-    const t = setInterval(() => setLeft((s) => Math.max(0, s - 1)), 1000);
-    // l'adversaire drafte en caché (mock)
+    const t = setInterval(
+      () => setLeft((s) => (deadline ? Math.max(0, deadline - Math.floor(Date.now() / 1000)) : Math.max(0, s - 1))),
+      1000,
+    );
+    // l'adversaire drafte en caché : on ne voit que son engagement on-chain
     const o = setInterval(() => setOppPicks((p) => Math.min(4, p + 1)), 6500);
     return () => {
       clearInterval(t);
       clearInterval(o);
     };
-  }, []);
+  }, [deadline]);
+
+  const lock = async () => {
+    if (currentDuel === null) return onLocked(legs);
+    setLocking(true);
+    setError(null);
+    try {
+      await commitBasket(currentDuel, legs);
+      onLocked(legs);
+    } catch (e) {
+      setError(String((e as Error).message).slice(0, 200));
+    } finally {
+      setLocking(false);
+    }
+  };
 
   const toggle = (symbol: string) =>
     setLegs((ls) =>
@@ -60,7 +97,13 @@ export function Draft({ onLocked, initial = [] }: { onLocked: (basket: BasketLeg
       ls.map((l) => (l.symbol === symbol ? { ...l, weight: Math.max(STEP, Math.min(100, l.weight + d)) } : l)),
     );
 
-  const market = useMemo(() => ASSETS.filter((a) => filter === "All" || TOKENS[a.symbol]?.klass === filter), [filter]);
+  const market = useMemo(
+    () =>
+      ASSETS.filter((a) => filter === "All" || TOKENS[a.symbol]?.klass === filter).map((a) =>
+        prices[a.symbol] ? { ...a, price: prices[a.symbol] } : a,
+      ),
+    [filter, prices],
+  );
 
   const lockHint =
     legs.length < MIN_LEGS
@@ -81,7 +124,7 @@ export function Draft({ onLocked, initial = [] }: { onLocked: (basket: BasketLeg
           </p>
         </div>
         <GameTimer left={left} total={DRAFT_SECONDS} label="Draft ends in" />
-        <OpponentDrafting picks={oppPicks} />
+        <OpponentDrafting picks={rivalLocked ? MAX_LEGS : oppPicks} name={OPPONENT.name} locked={rivalLocked} />
         <TimeDrain left={left} total={DRAFT_SECONDS} />
       </div>
 
@@ -150,13 +193,22 @@ export function Draft({ onLocked, initial = [] }: { onLocked: (basket: BasketLeg
         </div>
 
         <button
-          disabled={!valid}
-          onClick={() => onLocked(legs)}
+          disabled={!valid || locking}
+          onClick={lock}
           className="mt-5 flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-[#ff3fb4] via-[#ff6a3d] to-[#ffc861] py-4 font-display text-xl font-bold uppercase tracking-wider text-[#1a0612] shadow-[0_10px_40px_-10px_#ff3fb4] transition hover:brightness-110 disabled:from-white/10 disabled:via-white/10 disabled:to-white/10 disabled:text-white/40 disabled:shadow-none"
         >
           <GiPadlock className="h-6 w-6" />
-          {valid ? "Lock basket" : lockHint}
+          {locked
+            ? rivalLocked
+              ? "Locked · sending the duel to the rollup…"
+              : "Locked · waiting for your rival"
+            : locking
+              ? "Locking (on-chain commitment)…"
+              : valid
+                ? "Lock basket"
+                : lockHint}
         </button>
+        {error && <p className="mt-2 text-center text-sm text-[#ff3b5c]">{error}</p>}
       </Panel>
 
       {/* ---------- Marché ---------- */}
@@ -200,11 +252,11 @@ export function Draft({ onLocked, initial = [] }: { onLocked: (basket: BasketLeg
 /* ================= Sous-composants ================= */
 
 /** L'adversaire drafte : ses cartes arrivent face cachée */
-function OpponentDrafting({ picks }: { picks: number }) {
+function OpponentDrafting({ picks, name, locked }: { picks: number; name: string; locked: boolean }) {
   return (
     <div className="md:text-right">
       <div className="font-display text-xs font-semibold uppercase tracking-[0.3em] text-[#ff3fb4]">
-        {OPPONENT.name} is drafting
+        {name} {locked ? "has locked in" : "is drafting"}
       </div>
       <div className="mt-2 flex gap-1.5 md:justify-end">
         {Array.from({ length: MAX_LEGS }, (_, i) => (
@@ -227,7 +279,7 @@ function OpponentDrafting({ picks }: { picks: number }) {
           </div>
         ))}
       </div>
-      <div className="mt-1 text-xs text-white/40">Hidden until the duel starts</div>
+      <div className="mt-1 text-xs text-white/40">{locked ? "Commitment on chain · hidden until the reveal" : "Hidden until the duel starts"}</div>
     </div>
   );
 }
