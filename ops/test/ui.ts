@@ -114,7 +114,7 @@ async function play(page: Page, burner: Keypair, errors: string[]) {
   await page.getByText(/Settled on Solana/).waitFor({ timeout: 120_000 });
   step("settled on Solana, profile updated");
   await shot(page, "07-result");
-  if (await page.getByText("SURVIVED").isVisible()) {
+  if (await page.getByText("SURVIVED", { exact: true }).isVisible()) {
     await page.getByText("Mint this basket").click();
     await page.getByText("Trophy minted").waitFor({ timeout: 60_000 });
     step("winning basket minted as an on-chain trophy");
