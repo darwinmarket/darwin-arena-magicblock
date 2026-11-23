@@ -380,6 +380,8 @@ pub enum ArenaError {
     BadTokenAccount,
     #[msg("Not enough test USDC")]
     InsufficientFunds,
+    #[msg("Only the winner of a settled duel can mint its trophy")]
+    NotTheWinner,
 }
 
 #[cfg(test)]

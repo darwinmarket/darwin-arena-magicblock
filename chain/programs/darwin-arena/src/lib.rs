@@ -44,6 +44,7 @@ pub const FAUCET_SEED: &[u8] = b"faucet";
 pub const PROFILE_SEED: &[u8] = b"profile";
 pub const TABLE_SEED: &[u8] = b"table";
 pub const DUEL_SEED: &[u8] = b"duel";
+pub const TROPHY_SEED: &[u8] = b"trophy";
 
 pub const DECIMALS: u8 = 6;
 pub const ONE_USDC: u64 = 1_000_000;
@@ -330,6 +331,29 @@ pub mod darwin_arena {
             });
         }
         msg!("settled duel {} winner {}", d.id, d.winner);
+        Ok(())
+    }
+
+    /// "Mint this basket": the winner of a settled duel records the winning
+    /// basket as an on-chain trophy, one per duel, owned by the winner.
+    pub fn mint_trophy(ctx: Context<MintTrophy>) -> Result<()> {
+        let d = &ctx.accounts.duel;
+        require!(d.status == STATUS_SETTLED, ArenaError::BadStatus);
+        require!(d.winner < 2, ArenaError::NotTheWinner);
+        let w = d.winner as usize;
+        require_keys_eq!(d.players[w], ctx.accounts.winner.key(), ArenaError::NotTheWinner);
+        let t = &mut ctx.accounts.trophy;
+        t.owner = d.players[w];
+        t.duel = d.key();
+        t.duel_id = d.id;
+        t.opponent = d.players[1 - w];
+        t.weights = d.start_weights[w];
+        t.score = d.score[w];
+        t.opp_score = d.score[1 - w];
+        t.stake = d.stake;
+        t.mutations = d.mutations;
+        t.minted_ts = Clock::get()?.unix_timestamp;
+        t.bump = ctx.bumps.trophy;
         Ok(())
     }
 
@@ -777,6 +801,36 @@ pub struct DelegateDuel<'info> {
     /// CHECK: the duel PDA, handed to the delegation program.
     #[account(mut, del, seeds = [DUEL_SEED, &id.to_le_bytes()], bump)]
     pub duel: UncheckedAccount<'info>,
+}
+
+#[derive(Accounts)]
+pub struct MintTrophy<'info> {
+    #[account(mut)]
+    pub winner: Signer<'info>,
+    #[account(seeds = [DUEL_SEED, &duel.id.to_le_bytes()], bump = duel.bump)]
+    pub duel: Box<Account<'info, Duel>>,
+    #[account(init, payer = winner, space = 8 + Trophy::INIT_SPACE, seeds = [TROPHY_SEED, duel.key().as_ref()], bump)]
+    pub trophy: Account<'info, Trophy>,
+    pub system_program: Program<'info, System>,
+}
+
+/// A winning basket, recorded by its winner after settlement.
+#[account]
+#[derive(InitSpace)]
+pub struct Trophy {
+    pub owner: Pubkey,
+    pub duel: Pubkey,
+    pub duel_id: u64,
+    pub opponent: Pubkey,
+    /// The basket as drafted (weights in %, per asset).
+    pub weights: [u8; ASSETS],
+    pub score: i64,
+    pub opp_score: i64,
+    pub stake: u64,
+    /// The three mutations the basket lived through.
+    pub mutations: [MutationSlot; MUTATIONS],
+    pub minted_ts: i64,
+    pub bump: u8,
 }
 
 #[derive(Accounts)]
