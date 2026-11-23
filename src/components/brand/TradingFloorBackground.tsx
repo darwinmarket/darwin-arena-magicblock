@@ -8,6 +8,7 @@
 //  - tickets de bourse qui tombent en virevoltant, poussière dans les faisceaux de lumière ;
 //  - parallaxe légère à la souris.
 // Les % sont des positions dans l'image (1024 x 572).
+import { asset } from "@/lib/asset";
 import { useEffect, useRef, useState } from "react";
 
 const IMG_W = 1024;
@@ -154,7 +155,7 @@ export function TradingFloorBackground({ dim = 0.5 }: { dim?: number }) {
         {/* Intro : on arrive dans la salle (zoom arrière + mise au point), animation CSS one-shot */}
         <div className="arena-arrive absolute inset-0">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/arena/trading_floor.png" alt="" className="absolute inset-0 h-full w-full select-none" draggable={false} />
+          <img src={asset("/arena/trading_floor.png")} alt="" className="absolute inset-0 h-full w-full select-none" draggable={false} />
           {/* Halo pulsé de l'enseigne DARWIN ARENA */}
           <div className="arena-sign absolute rounded-md" style={{ left: "42.2%", top: "27.6%", width: "15.4%", height: "13%" }} />
           <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />

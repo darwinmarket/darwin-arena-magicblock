@@ -9,6 +9,7 @@
 //  - parallaxe légère qui suit la souris.
 // Tout est dans un conteneur au ratio de l'image, en mode "cover" : les % ci-dessous sont
 // des positions dans l'image (1376 x 768).
+import { asset } from "@/lib/asset";
 import { useEffect, useRef, useState } from "react";
 import { ASSETS } from "@/lib/mock";
 
@@ -191,7 +192,7 @@ export function StreetBackground({ dim = 0.35, entering = false }: { dim?: numbe
           }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/arena/street.png" alt="" className="absolute inset-0 h-full w-full select-none" draggable={false} />
+          <img src={asset("/arena/street.png")} alt="" className="absolute inset-0 h-full w-full select-none" draggable={false} />
 
           {/* Pulsation des néons : un halo magenta/cyan qui respire sur toute la scène */}
           <div className="arena-neon absolute inset-0 mix-blend-screen" />

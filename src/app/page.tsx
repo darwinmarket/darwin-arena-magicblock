@@ -3,6 +3,7 @@
 // Accueil : l'équivalent de la "borne" de la référence. Deux choix seulement : PLAY ou DASHBOARD.
 // Fond : la rue Wall Street animée. PLAY = la caméra fonce dans la Bourse (bâtiment au drapeau),
 // puis on arrive dans la salle des marchés (/play).
+import { asset } from "@/lib/asset";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -15,7 +16,7 @@ export default function Home() {
   useEffect(() => {
     router.prefetch("/play");
     const img = new Image(); // précharge la salle des marchés pour éviter un flash
-    img.src = "/arena/trading_floor.png";
+    img.src = asset("/arena/trading_floor.png");
   }, [router]);
 
   const play = () => {

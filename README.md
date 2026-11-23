@@ -10,6 +10,8 @@ randomness shake the duel up; each player can rebalance twice.
 Built for MagicBlock's Solana Blitz (Entertainment Finance). Everything runs on
 **Solana devnet + MagicBlock's devnet Ephemeral Rollup**, with real Pyth Lazer prices.
 
+**Play it:** https://darwin.market/arena-magicblock
+
 ## How a duel runs
 
 ```
@@ -103,6 +105,13 @@ Nobody else around? With the keeper running, its bot sits down after 8 s. Withou
 it, after 10 s alone the lobby offers **Play the practice bot**: a second player that
 runs in your own browser (its own keypair, test USDC and on-chain profile) and plays
 its seat for real; your wallet only funds its fees once (0.03 SOL).
+
+### Hosting
+
+The live front is a static Next.js build served at `darwin.market/arena-magicblock`.
+It is built with `NEXT_PUBLIC_BASE_PATH=/arena-magicblock` (see `next.config.ts`); public
+files referenced from plain `<img>` tags go through `src/lib/asset.ts` so they pick up the
+prefix. Locally the variable stays unset and the app lives at `/`.
 
 ### Ops scripts (keys live in `~/.config/darwin-arena/`, never in the repo)
 
