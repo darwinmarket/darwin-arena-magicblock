@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Chakra_Petch } from "next/font/google";
 import "./globals.css";
 import { TopBar } from "@/components/TopBar";
-import { ProfileProvider } from "@/lib/store";
+import { Providers } from "@/components/Providers";
 
 // Typo display du jeu (titres, chiffres, boutons)
 const display = Chakra_Petch({ subsets: ["latin"], weight: ["500", "600", "700"], variable: "--font-chakra" });
@@ -16,10 +16,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en" className={display.variable}>
       <body className="min-h-screen bg-[#0b0716] text-white antialiased">
-        <ProfileProvider>
+        <Providers>
           <TopBar />
           <main className="mx-auto max-w-6xl px-4 pb-16 pt-24">{children}</main>
-        </ProfileProvider>
+        </Providers>
       </body>
     </html>
   );
