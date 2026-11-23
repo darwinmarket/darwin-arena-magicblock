@@ -1,7 +1,8 @@
 // A full game through the real front, in headless Chromium, against devnet and
 // the MagicBlock ER: burner wallet -> faucet -> 1 USDC table -> the keeper's bot
 // joins -> draft + lock -> live duel (crank ticks, VRF mutations, a rebalance)
-// -> result -> dashboard. Needs `npm run dev -- -p 3040` and `npm run keeper`.
+// -> result -> dashboard. Needs `npm run dev -- -p 3040` and `npm run keeper`,
+// or PRACTICE=1 to play the in-browser practice bot instead of the keeper's.
 //
 //   npx tsx ops/test/ui.ts            (screenshots in $SHOTS, default /tmp/darwin-ui)
 import { Keypair, LAMPORTS_PER_SOL, SystemProgram } from "@solana/web3.js";
@@ -62,6 +63,11 @@ async function play(page: Page, burner: Keypair, errors: string[]) {
   await page.getByText("Rookie Pit").click();
   await page.getByText("Find a match for 1 USDC").click();
   step("staked 1 USDC, waiting at the table");
+  if (process.env.PRACTICE) {
+    // No keeper: summon the in-browser practice bot.
+    await page.getByText("Play the practice bot").click({ timeout: 30_000 });
+    step("practice bot summoned");
+  }
   await page.getByText("Draft starts in").waitFor({ timeout: 90_000 });
   step("rival found");
   await shot(page, "02-matched");
