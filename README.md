@@ -164,7 +164,7 @@ transactions, so it holds across serverless instances) and limits requests per I
 | Browser, keeper's bot | `npx tsx ops/test/ui.ts` | full duel through the UI in 328 s, 0 console errors |
 | Browser, practice bot, no server | `PRACTICE=1 npx tsx ops/test/ui.ts` | full duel through the UI in 331 s, 0 console errors |
 | Hosted site, empty wallet | `APP_URL=https://darwin.market/arena-magicblock ONBOARD=1 PRACTICE=1 npx tsx ops/test/ui.ts` | SOL from the site faucet with no click, test USDC + stake in one approval, full duel, settled in 333 s, spectator page, 0 console errors |
-| On-chain battery | `npm run battery -- 14 3` | 21 duels, 293 / 293 checks incl. trophies ([BATTERY.md](BATTERY.md)) |
+| On-chain battery | `npm run battery -- 20 3` | 21 duels + a 6-player rush on one table, 296 / 296 checks incl. trophies ([BATTERY.md](BATTERY.md)) |
 
 ## Repository
 
@@ -218,8 +218,9 @@ ops/             setup, keeper + bot, e2e scripts and tests
 | battery | the battery reused one session token per player across parallel duels (test bug) | battery PR |
 | battery | devnet dropped one commit transaction; ops `send` now resends after the blockhash expires | PR #24 |
 | battery | a skipped rebalance was counted, so the "third rebalance" test sent the second (test bug; program correct) | PR #25 |
+| live tester | opening a duel while someone else opened one failed with ConstraintSeeds 2006 (duels were seeded by the moving counter) | PR #27: caller-picked id in a window, race-proof seating with automatic retries, human error messages |
 
 The last on-chain battery run is in [BATTERY.md](BATTERY.md): 21 duels in 3 rounds of 7
 parallel duels across the three tables (regular, mirror, forfeit, double no-show,
-abandoned draft), 14 players, **293 / 293 checks passed** (trophies included; 4 devnet
-transactions dropped and resent on the way).
+abandoned draft), plus 6 players seating on the same table at the same instant, 20
+players, **296 / 296 checks passed** (trophies included).
