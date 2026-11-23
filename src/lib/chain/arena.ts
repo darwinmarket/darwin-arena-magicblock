@@ -25,7 +25,7 @@ import {
 } from "./constants";
 import rawIdl from "./idl/darwin_arena.json";
 import type { DarwinArena } from "./idl/darwin_arena";
-import { configPda, duelPda, faucetPda, profilePda, sessionTokenPda, tablePda, vrfIdentityPda } from "./pdas";
+import { configPda, duelPda, faucetPda, profilePda, sessionTokenPda, tablePda, trophyPda, vrfIdentityPda } from "./pdas";
 
 export type ArenaProgram = Program<DarwinArena>;
 
@@ -186,6 +186,13 @@ export const ix = {
         vault,
         tokenProgram: TOKEN_PROGRAM_ID,
       })
+      .instruction(),
+
+  /// The winner of a settled duel records its basket as an on-chain trophy.
+  mintTrophy: (p: ArenaProgram, winner: PublicKey, duelId: number) =>
+    p.methods
+      .mintTrophy()
+      .accountsPartial({ winner, duel: duelPda(duelId), trophy: trophyPda(duelPda(duelId)), systemProgram: SystemProgram.programId })
       .instruction(),
 
   // --------------------------------------------------------- ephemeral rollup
