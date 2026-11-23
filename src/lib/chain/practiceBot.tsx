@@ -16,7 +16,8 @@ import { ataOf, configPda, duelPda, profilePda } from "./pdas";
 
 const KEY = "darwin-arena:practice-bot";
 const PLAN = (id: number) => `darwin-arena:practice-bot:${id}`;
-const BOT_SOL = 0.03;
+/// Its profile, token account and faucet claim rent, plus fees.
+const BOT_SOL = 0.02;
 
 export function botKeypair(): Keypair {
   let raw = localStorage.getItem(KEY);
@@ -64,7 +65,7 @@ export async function summonPracticeBot(opts: {
   const bot = botKeypair();
   const config = await program.account.config.fetch(configPda());
   const lamports = await base.getBalance(bot.publicKey);
-  if (lamports < 0.015 * LAMPORTS_PER_SOL) {
+  if (lamports < 0.012 * LAMPORTS_PER_SOL) {
     await fundWith(
       [SystemProgram.transfer({ fromPubkey: wallet, toPubkey: bot.publicKey, lamports: BOT_SOL * LAMPORTS_PER_SOL - lamports })],
       "Fund the practice bot",
