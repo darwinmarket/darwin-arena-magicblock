@@ -114,6 +114,17 @@ async function play(page: Page, burner: Keypair, errors: string[]) {
   await page.getByText(/Settled on Solana/).waitFor({ timeout: 120_000 });
   step("settled on Solana, profile updated");
   await shot(page, "07-result");
+  if (await page.getByText("SURVIVED").isVisible()) {
+    await page.getByText("Mint this basket").click();
+    await page.getByText("Trophy minted").waitFor({ timeout: 60_000 });
+    step("winning basket minted as an on-chain trophy");
+  }
+  const duelId = Number((await page.getByText(/Duel #\d+/).first().innerText()).match(/#(\d+)/)?.[1]);
+  await page.goto(`${URL}/duel?id=${duelId}`);
+  await page.getByText("Solana transactions").waitFor({ timeout: 30_000 });
+  await page.waitForTimeout(4000);
+  step(`spectator page for duel #${duelId}`);
+  await shot(page, "07b-spectator");
 
   await page.goto(`${URL}/menu`);
   await page.waitForTimeout(6000);
