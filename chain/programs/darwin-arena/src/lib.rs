@@ -36,7 +36,7 @@ pub mod token;
 use game::*;
 use token::*;
 
-declare_id!("DjsXYvzbZFhM5rdDiq9Dvc4YgA7roLZLDB5tD7KnpcpA");
+declare_id!("GnQC4MjzjS8AZvtj5VR64ovJupSm93yCiYz1ZkLyzFNp");
 
 pub const CONFIG_SEED: &[u8] = b"config";
 pub const USDC_SEED: &[u8] = b"usdc-mint";
