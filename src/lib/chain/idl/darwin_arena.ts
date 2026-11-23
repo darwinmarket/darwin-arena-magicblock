@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/darwin_arena.json`.
  */
 export type DarwinArena = {
-  "address": "DjsXYvzbZFhM5rdDiq9Dvc4YgA7roLZLDB5tD7KnpcpA",
+  "address": "GnQC4MjzjS8AZvtj5VR64ovJupSm93yCiYz1ZkLyzFNp",
   "metadata": {
     "name": "darwinArena",
     "version": "0.1.0",
@@ -266,38 +266,38 @@ export type DarwinArena = {
             "program": {
               "kind": "const",
               "value": [
-                189,
-                71,
-                196,
-                146,
-                68,
-                229,
-                52,
-                235,
-                107,
-                48,
-                237,
-                237,
-                4,
-                67,
-                149,
-                230,
-                148,
-                181,
-                158,
-                152,
-                192,
-                79,
-                135,
-                130,
-                4,
-                40,
-                158,
-                182,
-                143,
                 234,
-                11,
-                131
+                128,
+                169,
+                124,
+                177,
+                103,
+                163,
+                88,
+                254,
+                69,
+                218,
+                163,
+                134,
+                242,
+                171,
+                60,
+                4,
+                185,
+                61,
+                33,
+                55,
+                75,
+                175,
+                215,
+                186,
+                177,
+                135,
+                225,
+                65,
+                83,
+                160,
+                241
               ]
             }
           }
@@ -396,7 +396,7 @@ export type DarwinArena = {
         },
         {
           "name": "ownerProgram",
-          "address": "DjsXYvzbZFhM5rdDiq9Dvc4YgA7roLZLDB5tD7KnpcpA"
+          "address": "GnQC4MjzjS8AZvtj5VR64ovJupSm93yCiYz1ZkLyzFNp"
         },
         {
           "name": "delegationProgram",
