@@ -61,6 +61,8 @@ interface ArenaCtx {
   commitBasket: (duelId: number, legs: Leg[]) => Promise<string>;
   rebalance: (duelId: number, weights: number[]) => Promise<string>;
   claim: (duelId: number) => Promise<string | null>;
+  /// The winner records the winning basket as an on-chain trophy.
+  mintTrophy: (duelId: number) => Promise<string>;
   /// Seat a practice bot (runs in this browser) in the duel waiting at the table.
   summonBot: (duelId: number) => Promise<string>;
   currentDuel: number | null;
@@ -346,6 +348,14 @@ export function ArenaProvider({ children }: { children: ReactNode }) {
     [publicKey, config, base, er, program, erProgram, sendSession, sendWallet, refresh],
   );
 
+  const mintTrophy = useCallback(
+    async (duelId: number) => {
+      if (!publicKey) throw new Error("Connect a wallet first");
+      return sendWallet([await ix.mintTrophy(program, publicKey, duelId)], "Mint the winning basket");
+    },
+    [publicKey, program, sendWallet],
+  );
+
   const summonBot = useCallback(
     async (duelId: number) => {
       if (!publicKey) throw new Error("Connect a wallet first");
@@ -408,6 +418,7 @@ export function ArenaProvider({ children }: { children: ReactNode }) {
     rebalance,
     claim,
     summonBot,
+    mintTrophy,
     currentDuel,
     setCurrentDuel,
     activity,
