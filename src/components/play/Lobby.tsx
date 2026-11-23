@@ -25,7 +25,7 @@ export function Lobby({ onMatched, live = null }: { onMatched: (stake: number) =
   const { me } = useProfile();
   const { connected } = useWallet();
   const { setVisible } = useWalletModal();
-  const { findMatch, cancelWaiting, summonBot, usdc, currentDuel, setCurrentDuel } = useArena();
+  const { findMatch, cancelWaiting, summonBot, sol, solStatus, currentDuel, setCurrentDuel } = useArena();
   const [summoning, setSummoning] = useState(false);
   const [stake, setStake] = useState(STAKES[1]);
   const [elapsed, setElapsed] = useState(0);
@@ -53,7 +53,8 @@ export function Lobby({ onMatched, live = null }: { onMatched: (stake: number) =
   const find = async () => {
     if (!connected) return setVisible(true);
     setError(null);
-    if (usdc !== null && usdc < stake) return setError(`You need ${stake} test USDC: use "+ Test USDC" in the top bar.`);
+    // Test USDC is minted in the stake transaction itself when the wallet has none.
+    if (sol !== null && sol < 0.03) return setError(solStatus === "requesting" ? "Getting devnet SOL for you, one second…" : 'This wallet needs devnet SOL to play: click "Get devnet SOL" in the top bar.');
     setPending(true);
     try {
       setElapsed(0);
