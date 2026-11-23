@@ -30,7 +30,7 @@ const ep = erProgram();
 const crank = namedKeypair("crank");
 const BOT_WAIT = Number(process.env.BOT_WAIT ?? 8);
 const BOTS = (process.env.BOTS ?? "bot1,bot2").split(",").filter(Boolean).map((n) => ({ name: n, key: namedKeypair(n) }));
-const BOT_NAMES: Record<string, string> = { bot1: "Teknique", bot2: "kaito" };
+const BOT_NAMES: Record<string, string> = { bot1: "Arena Bot 1", bot2: "Arena Bot 2" };
 const LOOKBACK = Number(process.env.LOOKBACK ?? 40);
 const DRAFT_GRACE = 30;
 
