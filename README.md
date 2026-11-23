@@ -97,8 +97,12 @@ npm run keeper              # optional: bot opponent + keeper (needs keys, see b
 ```
 
 Open http://localhost:3040, connect Phantom (devnet) or pick **Burner (devnet)** and
-send it ~0.05 devnet SOL, click **+ Test USDC**, pick a table, **Find a match**.
-With the keeper running, a bot sits down after 8 s.
+send it ~0.1 devnet SOL, click **+ Test USDC**, pick a table, **Find a match**.
+
+Nobody else around? With the keeper running, its bot sits down after 8 s. Without
+it, after 10 s alone the lobby offers **Play the practice bot**: a second player that
+runs in your own browser (its own keypair, test USDC and on-chain profile) and plays
+its seat for real; your wallet only funds its fees once (0.03 SOL).
 
 ### Ops scripts (keys live in `~/.config/darwin-arena/`, never in the repo)
 

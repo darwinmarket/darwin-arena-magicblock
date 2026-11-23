@@ -36,10 +36,10 @@ const idl = { ...(rawIdl as object), address: PROGRAM_ID.toBase58() } as unknown
 export function arenaProgram(connection: Connection): ArenaProgram {
   const wallet = {
     publicKey: PublicKey.default,
-    signTransaction: async <T extends Transaction | VersionedTransaction>(_tx: T): Promise<T> => {
+    signTransaction: async <T extends Transaction | VersionedTransaction>(): Promise<T> => {
       throw new Error("read-only provider");
     },
-    signAllTransactions: async <T extends Transaction | VersionedTransaction>(_txs: T[]): Promise<T[]> => {
+    signAllTransactions: async <T extends Transaction | VersionedTransaction>(): Promise<T[]> => {
       throw new Error("read-only provider");
     },
   };

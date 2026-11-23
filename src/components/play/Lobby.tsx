@@ -25,7 +25,8 @@ export function Lobby({ onMatched, live = null }: { onMatched: (stake: number) =
   const { me } = useProfile();
   const { connected } = useWallet();
   const { setVisible } = useWalletModal();
-  const { findMatch, cancelWaiting, usdc, currentDuel, setCurrentDuel } = useArena();
+  const { findMatch, cancelWaiting, summonBot, usdc, currentDuel, setCurrentDuel } = useArena();
+  const [summoning, setSummoning] = useState(false);
   const [stake, setStake] = useState(STAKES[1]);
   const [elapsed, setElapsed] = useState(0);
   const [countdown, setCountdown] = useState(3);
@@ -62,6 +63,18 @@ export function Lobby({ onMatched, live = null }: { onMatched: (stake: number) =
       setCurrentDuel(null);
     } finally {
       setPending(false);
+    }
+  };
+  const practice = async () => {
+    if (currentDuel === null) return;
+    setSummoning(true);
+    setError(null);
+    try {
+      await summonBot(currentDuel);
+    } catch (e) {
+      setError(String((e as Error).message).slice(0, 160));
+    } finally {
+      setSummoning(false);
     }
   };
   const leave = async () => {
@@ -177,6 +190,15 @@ export function Lobby({ onMatched, live = null }: { onMatched: (stake: number) =
               </button>
             )}
           </div>
+        )}
+        {seat && !found && elapsed >= 10 && (
+          <button
+            onClick={practice}
+            disabled={summoning}
+            className="mt-3 w-full rounded-2xl border border-[#2de2ff]/40 bg-[#2de2ff]/10 py-3 font-display text-sm font-bold uppercase tracking-wider text-[#2de2ff] transition hover:bg-[#2de2ff]/20 disabled:opacity-50"
+          >
+            {summoning ? "Practice bot is sitting down…" : "Nobody around? Play the practice bot"}
+          </button>
         )}
         {error && <p className="mt-3 text-center text-sm text-[#ff3b5c]">{error}</p>}
       </Panel>
