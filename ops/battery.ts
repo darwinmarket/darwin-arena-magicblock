@@ -25,7 +25,7 @@ import { createSessionIx, ix } from "../src/lib/chain/arena";
 import idl from "../src/lib/chain/idl/darwin_arena.json";
 import { DELEGATION_PROGRAM_ID, DUEL_SECONDS, MUTATION_AT, PROGRAM_ID, STAKES, STATUS, SYMBOLS } from "../src/lib/chain/constants";
 import { commitment, duelView, randomSalt, type DuelView } from "../src/lib/chain/duel";
-import { ataOf, configPda, duelPda, profilePda, sessionTokenPda, tablePda } from "../src/lib/chain/pdas";
+import { ataOf, configPda, duelPda, profilePda, sessionTokenPda, tablePda, trophyPda } from "../src/lib/chain/pdas";
 import { adminKeypair, baseConnection, baseProgram, erConnection, erProgram, KEY_DIR, loadKeypair, namedKeypair, send, short, sleep } from "./lib/env";
 
 const base = baseConnection();
@@ -49,7 +49,7 @@ function check(name: string, ok: boolean, detail = "") {
 function time(label: string, ms: number) {
   (timings[label] ??= []).push(ms);
 }
-const ANCHOR_ERRORS: Record<number, string> = { 2006: "ConstraintSeeds", 2012: "ConstraintAddress", 3007: "AccountOwnedByWrongProgram", 3012: "AccountNotInitialized" };
+const ANCHOR_ERRORS: Record<number, string> = { 0: "already in use", 2006: "ConstraintSeeds", 2012: "ConstraintAddress", 3007: "AccountOwnedByWrongProgram", 3012: "AccountNotInitialized" };
 const errName = (code: number) => idl.errors.find((e) => e.code === code)?.name ?? ANCHOR_ERRORS[code] ?? String(code);
 
 async function tx(conn: typeof base, ixs: TransactionInstruction[], signers: Keypair[], label: string) {
@@ -344,6 +344,20 @@ async function runDuel(plan: DuelPlan) {
   await tx(base, [await ix.settle(bp, crank.publicKey, id, [a.key.publicKey, b.key.publicKey], [a.usdc, b.usdc], vault)], [crank], "settle");
   if (plan.adversarial) {
     await refused(`${tag} settle twice`, tx(base, [await ix.settle(bp, crank.publicKey, id, [a.key.publicKey, b.key.publicKey], [a.usdc, b.usdc], vault)], [crank], "x"), "BadStatus");
+  }
+
+  // Trophy: only the winner of a settled duel, once.
+  if (final.winner < 2) {
+    const winner = ps[final.winner];
+    const loser = ps[1 - final.winner];
+    await refused(`${tag} loser minting the trophy`, tx(base, [await ix.mintTrophy(bp, loser.key.publicKey, id)], [loser.key], "x"), "NotTheWinner");
+    await tx(base, [await ix.mintTrophy(bp, winner.key.publicKey, id)], [winner.key], "mint trophy");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const t: any = await bp.account.trophy.fetch(trophyPda(duelPda(id)));
+    check(`${tag} trophy records the winning basket`, t.owner.equals(winner.key.publicKey) && Array.from(t.weights as number[]).join() === final.startWeights[final.winner].join());
+    if (plan.adversarial) await refused(`${tag} trophy minted twice`, tx(base, [await ix.mintTrophy(bp, winner.key.publicKey, id)], [winner.key], "x"), "already in use");
+  } else {
+    await refused(`${tag} trophy for a draw`, tx(base, [await ix.mintTrophy(bp, a.key.publicKey, id)], [a.key], "x"), "NotTheWinner");
   }
 
   const after = { usdc: [await usdcOf(a), await usdcOf(b)], prof: [await profileOf(a), await profileOf(b)] };
