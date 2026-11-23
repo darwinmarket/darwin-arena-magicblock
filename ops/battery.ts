@@ -281,7 +281,8 @@ async function runDuel(plan: DuelPlan) {
       await refused(`${tag} settle while the duel is on the ER`, tx(base, [await ix.settle(bp, crank.publicKey, id, [a.key.publicKey, b.key.publicKey], [a.usdc, b.usdc], vault)], [crank], "x"), "AccountOwnedByWrongProgram");
     }
     const requested = new Set<number>();
-    const rebalances = [0, 0];
+    const rebalances = [0, 0]; // attempts (landed or skipped)
+    const landed = [0, 0]; // rebalances the program accepted
     let ticksSeen = 0;
     const tStart = d.startTs;
     while (d.status === STATUS.LIVE) {
@@ -313,7 +314,9 @@ async function runDuel(plan: DuelPlan) {
         w[legs[1]] += 5;
         await tx(er, [await ix.rebalance(ep, ps[s].session.publicKey, id, w)], [ps[s].session], "rebalance (ER)");
         rebalances[s]++;
-        if (rebalances[s] === 2 && s === 0) {
+        landed[s]++;
+        // The third is only a refusal test once two have really landed.
+        if (landed[s] === 2 && s === 0) {
           const w3 = [...w];
           w3[legs[1]] -= 5;
           w3[legs[0]] += 5;
