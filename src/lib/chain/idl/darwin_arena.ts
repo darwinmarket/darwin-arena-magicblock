@@ -1322,6 +1322,58 @@ export type DarwinArena = {
       ]
     },
     {
+      "name": "setName",
+      "docs": [
+        "Change the profile's display name."
+      ],
+      "discriminator": [
+        78,
+        194,
+        111,
+        229,
+        198,
+        169,
+        162,
+        106
+      ],
+      "accounts": [
+        {
+          "name": "user",
+          "signer": true
+        },
+        {
+          "name": "profile",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  102,
+                  105,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "user"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "name",
+          "type": "string"
+        }
+      ]
+    },
+    {
       "name": "settle",
       "docs": [
         "The duel is back on Solana and finished: pay the winner (pot minus 5 %",
