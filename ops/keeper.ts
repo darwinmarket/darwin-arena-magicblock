@@ -17,6 +17,7 @@
 //   npx tsx ops/keeper.ts            (BOT_WAIT=8, BOTS=bot1,bot2)
 import { createAssociatedTokenAccountIdempotentInstruction } from "@solana/spl-token";
 import { Keypair, PublicKey, type TransactionInstruction } from "@solana/web3.js";
+import { utils } from "@coral-xyz/anchor";
 import { ix } from "../src/lib/chain/arena";
 import { DELEGATION_PROGRAM_ID, DRAFT_SECONDS, DUEL_SECONDS, MUTATION_AT, PROGRAM_ID, STAKES, STATUS, SYMBOLS } from "../src/lib/chain/constants";
 import { commitment, duelView, randomSalt, type DuelView } from "../src/lib/chain/duel";
@@ -31,7 +32,6 @@ const crank = namedKeypair("crank");
 const BOT_WAIT = Number(process.env.BOT_WAIT ?? 8);
 const BOTS = (process.env.BOTS ?? "bot1,bot2").split(",").filter(Boolean).map((n) => ({ name: n, key: namedKeypair(n) }));
 const BOT_NAMES: Record<string, string> = { bot1: "Arena Bot 1", bot2: "Arena Bot 2" };
-const LOOKBACK = Number(process.env.LOOKBACK ?? 40);
 const DRAFT_GRACE = 30;
 
 /// Baskets the bots hold until revealed: duel id -> weights + salt.
@@ -192,15 +192,21 @@ async function main() {
   const mint = config.usdcMint;
   const vault = config.vault;
   log(`keeper up: program ${short(PROGRAM_ID)}, crank ${short(crank.publicKey)}, bots ${BOTS.map((b) => `${b.name}=${short(b.key.publicKey)}`).join(" ")}, bot wait ${BOT_WAIT}s`);
-  const done = new Set<number>();
+  // Duel ids are picked in a window above the counter, so they are sparse: find
+  // the duels that need attention by status (on Solana), and keep following
+  // them while they live on the rollup.
+  const tracked = new Set<number>();
+  const STATUS_OFFSET = 8 + 8 + 1 + 8 + 64;
   for (;;) {
     try {
-      const count = (await bp.account.config.fetch(configPda())).duelCount.toNumber();
+      for (const status of [STATUS.OPEN, STATUS.DRAFTING, STATUS.FINISHED]) {
+        const found = await bp.account.duel.all([{ memcmp: { offset: STATUS_OFFSET, bytes: utils.bytes.bs58.encode(Uint8Array.of(status)) } }]);
+        for (const { account } of found) tracked.add(account.id.toNumber());
+      }
       const busyBots = new Set<string>();
-      for (let id = Math.max(0, count - LOOKBACK); id < count; id++) {
-        if (done.has(id)) continue;
+      for (const id of [...tracked]) {
         const st = await handle(id, mint, vault, busyBots);
-        if (st === "done" || st === "gone") done.add(id);
+        if (st === "done" || st === "gone") tracked.delete(id);
       }
       await botTables(mint, vault, busyBots);
     } catch (e) {
