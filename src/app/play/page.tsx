@@ -68,6 +68,19 @@ export default function PlayPage() {
             Duel #{live.view.id} · {live.layer === "er" ? "on the Ephemeral Rollup" : "on Solana"}
           </li>
         )}
+        {live && live.view.status >= 1 && (
+          <li>
+            <a
+              href={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/duel?id=${live.view.id}`}
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-lg bg-neutral-800 px-3 py-1 text-[#2de2ff]"
+              title="A public page anyone can watch this duel on"
+            >
+              Spectator link ↗
+            </a>
+          </li>
+        )}
       </ol>
 
       {step === "lobby" && <Lobby onMatched={onMatched} live={live} />}
