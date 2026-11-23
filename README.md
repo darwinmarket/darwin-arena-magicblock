@@ -116,6 +116,17 @@ its seat for real; your wallet only funds its fees once (0.03 SOL).
 | `npx tsx ops/test/ui.ts` | full duel through the real front in headless Chromium |
 | `npm run keeper` | keeper + bot opponent |
 
+## Tests and results
+
+| Suite | Command | Result |
+|---|---|---|
+| Game rules (Rust unit) | `npm run chain:test` | 12 / 12 |
+| Base layer on a local validator | `npm run test:local` | 14 / 14 (faucet + cooldown, tables, escrow, session-key commits, refusals, refunds) |
+| Devnet + ER, two session-keyed players | `npm run e2e` | full duel: 301 crank ticks in 300 s, 3 VRF mutations, rebalance, commit + undelegate, settle |
+| Browser, keeper's bot | `npx tsx ops/test/ui.ts` | full duel through the UI in 328 s, 0 console errors |
+| Browser, practice bot, no server | `PRACTICE=1 npx tsx ops/test/ui.ts` | full duel through the UI in 331 s, 0 console errors |
+| On-chain battery | `npm run battery -- 14 3` | 21 duels, 257 / 257 checks ([BATTERY.md](BATTERY.md)) |
+
 ## Repository
 
 ```
