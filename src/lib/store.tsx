@@ -6,7 +6,7 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
 import { useArena } from "./chain/ArenaProvider";
 import { playerFromProfile } from "./chain/profile";
-import { ME } from "./mock";
+import { GUEST } from "./mock";
 import type { Player } from "./types";
 
 interface ProfileCtx {
@@ -17,7 +17,6 @@ interface ProfileCtx {
 
 const Ctx = createContext<ProfileCtx | null>(null);
 
-const GUEST: Player = { ...ME, id: "guest", name: "guest", rank: { tier: "Cell", division: "III", points: 0 }, showcase: [null, null, null, null] };
 
 export function ProfileProvider({ children }: { children: ReactNode }) {
   const { wallet, profile } = useArena();
