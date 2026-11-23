@@ -13,7 +13,7 @@ import { useProfile } from "@/lib/store";
 export function TopBar() {
   const { connected, disconnect } = useWallet();
   const { setVisible } = useWalletModal();
-  const { usdc, sol, claimFaucet } = useArena();
+  const { usdc, sol, claimFaucet, ready } = useArena();
   const { me } = useProfile();
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -25,6 +25,7 @@ export function TopBar() {
       await claimFaucet();
       setMsg("+100 USDC");
     } catch (e) {
+      console.error("faucet", e);
       setMsg(String((e as Error).message).includes("FaucetCooldown") || String((e as Error).message).includes("6001") ? "Faucet: wait 10 min" : "Faucet failed");
     } finally {
       setBusy(false);
@@ -41,7 +42,7 @@ export function TopBar() {
         {connected && (
           <button
             onClick={faucet}
-            disabled={busy}
+            disabled={busy || !ready}
             title="Mint 100 test USDC (once every 10 minutes)"
             className="rounded-xl bg-black/50 px-3 py-2 text-xs font-black uppercase text-[#3dff8a] disabled:opacity-50"
           >
