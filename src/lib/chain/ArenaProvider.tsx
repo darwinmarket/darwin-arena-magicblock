@@ -433,41 +433,54 @@ export function useDuel(duelId: number | null, everyMs = 1000): LiveDuel | null 
 /// mutation whose second has come. All session-key signed and permissionless,
 /// so the game moves on even without the keeper.
 function DuelAutopilot({ erProgram }: { erProgram: ArenaProgram }) {
-  const { currentDuel, wallet, er } = useArena();
+  const { currentDuel, wallet, er, base, program, mint, refresh } = useArena();
   const live = useDuel(currentDuel, 1500);
   const busy = useRef<Record<string, number>>({});
   useEffect(() => {
-    if (!live || !wallet || live.layer !== "er" || live.mySlot === null || currentDuel === null) return;
-    const { view, mySlot } = live;
+    if (!live || !wallet || live.mySlot === null || currentDuel === null) return;
+    const { view, mySlot, layer } = live;
     const id = currentDuel;
     const s = loadSession(wallet);
     if (!s) return;
-    const once = async (k: string, ms: number, f: () => Promise<TransactionInstruction[]>) => {
+    const once = async (conn: Connection, k: string, ms: number, f: () => Promise<TransactionInstruction[]>) => {
       if (Date.now() - (busy.current[k] ?? 0) < ms) return;
       busy.current[k] = Date.now();
       try {
         const tx = new Transaction().add(...(await f()));
         tx.feePayer = s.keypair.publicKey;
-        tx.recentBlockhash = (await er.getLatestBlockhash("confirmed")).blockhash;
+        tx.recentBlockhash = (await conn.getLatestBlockhash("confirmed")).blockhash;
         tx.sign(s.keypair);
-        await sendAndPoll(er, tx, k);
+        await sendAndPoll(conn, tx, k);
+        return true;
       } catch {
         /* someone else (the rival, the keeper) may have done it first */
       }
     };
     const now = Math.floor(Date.now() / 1000);
-    if (view.status === STATUS.DRAFTING) {
-      const b = loadBasket(wallet, id);
-      if (b && !view.revealed[mySlot]) once(`reveal-${id}`, 5000, async () => [await ix.revealBasket(erProgram, s.keypair.publicKey, id, b.weights, Uint8Array.from(b.salt))]);
-      if (view.revealed[0] && view.revealed[1]) once(`start-${id}`, 5000, async () => [await ix.startDuel(erProgram, s.keypair.publicKey, id)]);
-    } else if (view.status === STATUS.LIVE) {
-      view.mutations.forEach((m, i) => {
-        // Give the keeper a few seconds first; then any client may trigger it.
-        if (m.state === "hidden" && now - view.startTs >= m.at + 4) {
-          once(`mut-${id}-${i}`, 10_000, async () => [await ix.requestMutation(erProgram, s.keypair.publicKey, id, i)]);
-        }
-      });
+    if (layer === "er") {
+      if (view.status === STATUS.DRAFTING) {
+        const b = loadBasket(wallet, id);
+        if (b && !view.revealed[mySlot]) once(er, `reveal-${id}`, 5000, async () => [await ix.revealBasket(erProgram, s.keypair.publicKey, id, b.weights, Uint8Array.from(b.salt))]);
+        if (view.revealed[0] && view.revealed[1]) once(er, `start-${id}`, 5000, async () => [await ix.startDuel(erProgram, s.keypair.publicKey, id)]);
+      } else if (view.status === STATUS.LIVE) {
+        view.mutations.forEach((m, i) => {
+          // Give the keeper a few seconds first; then any client may trigger it.
+          if (m.state === "hidden" && now - view.startTs >= m.at + 4) {
+            once(er, `mut-${id}-${i}`, 10_000, async () => [await ix.requestMutation(erProgram, s.keypair.publicKey, id, i)]);
+          }
+        });
+      } else if (view.status === STATUS.FINISHED) {
+        // Time is up: hand the duel back to Solana (after the keeper's chance).
+        if (now - view.endTs >= 4) once(er, `finish-${id}`, 10_000, async () => [await ix.finishDuel(erProgram, s.keypair.publicKey, id)]);
+      }
+    } else if (view.status === STATUS.FINISHED && mint && view.players[1]) {
+      // Back on Solana but not paid yet: settle, paid by the session key.
+      const [p0, p1] = [view.players[0], view.players[1]];
+      once(base, `settle-${id}`, 10_000, async () => {
+        const c = await program.account.config.fetch(configPda());
+        return [await ix.settle(program, s.keypair.publicKey, id, [p0, p1], [ataOf(p0, mint), ataOf(p1, mint)], c.vault)];
+      }).then((ok) => ok && refresh());
     }
-  }, [live, wallet, currentDuel, er, erProgram]);
+  }, [live, wallet, currentDuel, er, base, program, mint, refresh, erProgram]);
   return null;
 }
