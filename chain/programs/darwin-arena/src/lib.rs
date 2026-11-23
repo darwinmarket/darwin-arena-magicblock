@@ -147,6 +147,12 @@ pub mod darwin_arena {
         Ok(())
     }
 
+    /// Change the profile's display name.
+    pub fn set_name(ctx: Context<SetName>, name: String) -> Result<()> {
+        ctx.accounts.profile.name = name_bytes(&name);
+        Ok(())
+    }
+
     /// Sit at an empty table: escrow the stake and open a duel waiting for a rival.
     pub fn open_duel(ctx: Context<OpenDuel>, tier: u8) -> Result<()> {
         let now = Clock::get()?.unix_timestamp;
@@ -697,6 +703,13 @@ pub struct InitProfile<'info> {
     #[account(init, payer = user, space = 8 + Profile::INIT_SPACE, seeds = [PROFILE_SEED, user.key().as_ref()], bump)]
     pub profile: Box<Account<'info, Profile>>,
     pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct SetName<'info> {
+    pub user: Signer<'info>,
+    #[account(mut, seeds = [PROFILE_SEED, user.key().as_ref()], bump = profile.bump)]
+    pub profile: Box<Account<'info, Profile>>,
 }
 
 #[derive(Accounts)]
