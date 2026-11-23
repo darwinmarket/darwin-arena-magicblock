@@ -260,7 +260,7 @@ impl Duel {
         }
     }
 
-    pub fn rebalance(&mut self, slot: usize, w: [u8; ASSETS]) -> Result<()> {
+    pub fn rebalance(&mut self, slot: usize, w: [u8; ASSETS], now: i64) -> Result<()> {
         require!(self.rebalances_left[slot] > 0, ArenaError::NoRebalanceLeft);
         let cur = self.weights[slot];
         for i in 0..ASSETS {
@@ -269,7 +269,7 @@ impl Duel {
         require!(w.iter().all(|x| x % WEIGHT_STEP == 0), ArenaError::BadBasket);
         require!(w.iter().map(|x| *x as u32).sum::<u32>() == 100, ArenaError::BadBasket);
         let f = self.frozen_asset;
-        if f != NONE && self.frozen_until > 0 {
+        if f != NONE && self.is_frozen(f as usize, now) {
             require!(w[f as usize] == cur[f as usize], ArenaError::FrozenAsset);
         }
         self.weights[slot] = w;
@@ -281,7 +281,10 @@ impl Duel {
     pub fn draw_mutation(&mut self, r: &[u8; 32], now: i64) -> MutationSlot {
         let at = now - self.start_ts;
         let held: Vec<usize> = (0..ASSETS).filter(|i| self.weights[0][*i] > 0 || self.weights[1][*i] > 0).collect();
-        let kind = r[0] % 3;
+        // Each kind lands once per duel, in an order the VRF decides.
+        let used: Vec<u8> = self.mutations.iter().filter(|m| m.state == MUT_APPLIED).map(|m| m.kind).collect();
+        let left: Vec<u8> = [KIND_DOUBLE, KIND_FREEZE, KIND_SWAP].into_iter().filter(|k| !used.contains(k)).collect();
+        let kind = if left.is_empty() { r[0] % 3 } else { left[r[0] as usize % left.len()] };
         let pick = |c: &Vec<usize>, b: u8| c[b as usize % c.len()] as u8;
         match kind {
             KIND_DOUBLE => {
@@ -446,14 +449,14 @@ mod tests {
     fn path_dependence_and_rebalance() {
         let mut d = live();
         d.advance(&[110, 100, 100, 100, 100, 100], 1001); // +5 %
-        d.rebalance(0, [10, 45, 45, 0, 0, 0]).unwrap();
+        d.rebalance(0, [10, 45, 45, 0, 0, 0], 1001).unwrap();
         d.advance(&[121, 100, 100, 100, 100, 100], 1002); // SOL +10 % again, only 10 % weight now
         assert_eq!(d.score[0], 5 * PCT + PCT);
         assert_eq!(d.rebalances_left[0], 1);
         // assets must stay the same
-        assert!(d.rebalance(0, [10, 45, 0, 45, 0, 0]).is_err());
-        d.rebalance(0, [20, 40, 40, 0, 0, 0]).unwrap();
-        assert!(d.rebalance(0, [30, 35, 35, 0, 0, 0]).is_err()); // none left
+        assert!(d.rebalance(0, [10, 45, 0, 45, 0, 0], 1002).is_err());
+        d.rebalance(0, [20, 40, 40, 0, 0, 0], 1002).unwrap();
+        assert!(d.rebalance(0, [30, 35, 35, 0, 0, 0], 1003).is_err()); // none left
     }
 
     #[test]
@@ -467,7 +470,7 @@ mod tests {
         d.advance(&[150, 100, 100, 100, 100, 100], 1010);
         assert_eq!(d.score[0], 10 * PCT); // frozen: no change
         assert_eq!(d.last_price[0], 150); // but reference follows the market
-        assert!(d.rebalance(0, [40, 40, 20, 0, 0, 0]).is_err()); // frozen SOL weight locked
+        assert!(d.rebalance(0, [40, 40, 20, 0, 0, 0], 1010).is_err()); // frozen SOL weight locked
         d.advance(&[165, 100, 100, 100, 100, 100], 1031); // freeze over
         assert_eq!(d.frozen_asset, NONE);
         d.advance(&[181, 100, 100, 100, 100, 100], 1032);
@@ -503,6 +506,29 @@ mod tests {
         let m = d.draw_mutation(&r, 1240);
         assert_eq!(m.kind, KIND_DOUBLE);
         assert_eq!(d.mult[m.a as usize], 2);
+    }
+
+    #[test]
+    fn each_kind_lands_once() {
+        let mut d = live();
+        let mut kinds = vec![];
+        for (i, t) in [1060, 1150, 1240].iter().enumerate() {
+            let r = [0u8; 32]; // same randomness every time
+            let m = d.draw_mutation(&r, *t);
+            d.mutations[i] = m;
+            kinds.push(m.kind);
+        }
+        kinds.sort();
+        assert_eq!(kinds, vec![KIND_DOUBLE, KIND_FREEZE, KIND_SWAP]);
+    }
+
+    #[test]
+    fn frozen_lock_ends_with_the_freeze() {
+        let mut d = live();
+        d.frozen_asset = 0;
+        d.frozen_until = 1031;
+        assert!(d.rebalance(0, [40, 40, 20, 0, 0, 0], 1030).is_err());
+        d.rebalance(0, [40, 40, 20, 0, 0, 0], 1031).unwrap(); // no tick since, still unlocked
     }
 
     #[test]
