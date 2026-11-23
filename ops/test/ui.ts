@@ -23,8 +23,8 @@ async function main() {
   fs.mkdirSync(SHOTS, { recursive: true });
   const burner = Keypair.generate();
   const conn = baseConnection();
-  await send(conn, [SystemProgram.transfer({ fromPubkey: adminKeypair().publicKey, toPubkey: burner.publicKey, lamports: 0.06 * LAMPORTS_PER_SOL })], [adminKeypair()]);
-  console.log(`burner ${burner.publicKey.toBase58()} funded with 0.06 SOL`);
+  await send(conn, [SystemProgram.transfer({ fromPubkey: adminKeypair().publicKey, toPubkey: burner.publicKey, lamports: 0.12 * LAMPORTS_PER_SOL })], [adminKeypair()]);
+  console.log(`burner ${burner.publicKey.toBase58()} funded with 0.12 SOL`);
 
   const browser = await chromium.launch();
   const page = await browser.newPage({ viewport: { width: 1400, height: 1000 } });
