@@ -13,7 +13,7 @@ import { useProfile } from "@/lib/store";
 export function TopBar() {
   const { connected, disconnect } = useWallet();
   const { setVisible } = useWalletModal();
-  const { usdc, sol, claimFaucet, ready } = useArena();
+  const { usdc, sol, claimFaucet, requestSol, solStatus, ready } = useArena();
   const { me } = useProfile();
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -39,6 +39,16 @@ export function TopBar() {
         Darwin Arena <span className="ml-1.5 text-neutral-400">Season 1 · devnet</span>
       </Link>
       <div className="flex items-center gap-3">
+        {connected && sol !== null && sol < 0.03 && (
+          <button
+            onClick={() => requestSol().catch((e) => setMsg(String((e as Error).message).slice(0, 60)))}
+            disabled={solStatus === "requesting"}
+            title="Free devnet SOL for fees, from this site's faucet"
+            className="rounded-xl bg-black/50 px-3 py-2 text-xs font-black uppercase text-[#2de2ff] disabled:opacity-60"
+          >
+            {solStatus === "requesting" ? "Getting devnet SOL…" : "Get devnet SOL"}
+          </button>
+        )}
         {connected && (
           <button
             onClick={faucet}
@@ -58,7 +68,7 @@ export function TopBar() {
             <>
               {me.name}{" "}
               <span className="ml-2 text-white/60">{usdc === null ? "…" : usdc.toFixed(2)} USDC</span>
-              {sol !== null && sol < 0.02 && <span className="ml-2 text-[#ff3b5c]">low SOL</span>}
+              {sol !== null && <span className={`ml-2 ${sol < 0.03 ? "text-[#ff3b5c]" : "text-white/40"}`}>{sol.toFixed(3)} SOL</span>}
             </>
           ) : (
             "Connect wallet"
