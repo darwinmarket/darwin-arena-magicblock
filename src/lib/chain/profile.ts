@@ -3,7 +3,12 @@ import { PublicKey } from "@solana/web3.js";
 import type { Match, Player, Stats } from "../types";
 import { HISTORY_RESULTS } from "./labels";
 import { scoreToPct, toLegs } from "./duel";
+import { BADGE_ART } from "../../components/game/emblems";
+import { autoShowcase, badgesFor } from "./badges";
 import { rankFromPoints } from "./rank";
+
+const RARITY_ORDER = ["common", "rare", "epic", "legendary", "mythic"];
+export const rarityRank = (id: string) => RARITY_ORDER.indexOf(BADGE_ART[id]?.rarity ?? "common");
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type RawProfile = any;
@@ -26,7 +31,8 @@ export function playerFromProfile(authority: PublicKey, p: RawProfile | null, fa
     avatar: "",
     rank,
     bannerId: `${rank.tier}-${color}`,
-    showcase: [null, null, null, null],
+    // The four rarest badges this profile has earned on chain.
+    showcase: autoShowcase(badgesFor(p), rarityRank),
   };
 }
 
