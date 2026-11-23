@@ -70,7 +70,7 @@ async function main() {
     { name: "bot2", wallet: namedKeypair("bot2"), session: Keypair.generate(), legs: [{ symbol: "BONK", weight: 40 }, { symbol: "WIF", weight: 30 }, { symbol: "PYTH", weight: 30 }], salt: randomSalt() },
   ];
   console.log(`e2e on ${STAKES[tier]} USDC table, program ${short(PROGRAM_ID)}`);
-  const usdc = [await ensurePlayer(seats[0].wallet, "bot1", mint), await ensurePlayer(seats[1].wallet, "bot2", mint)];
+  const usdc = [await ensurePlayer(seats[0].wallet, "Arena Bot 1", mint), await ensurePlayer(seats[1].wallet, "Arena Bot 2", mint)];
   const before = await Promise.all(usdc.map((u) => base.getTokenAccountBalance(u).then((b) => Number(b.value.amount) / 1e6)));
 
   // ------------------------------------------------------------ matchmaking

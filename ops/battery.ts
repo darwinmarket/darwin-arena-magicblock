@@ -26,6 +26,7 @@ import idl from "../src/lib/chain/idl/darwin_arena.json";
 import { DELEGATION_PROGRAM_ID, DUEL_SECONDS, MUTATION_AT, PROGRAM_ID, STAKES, STATUS, SYMBOLS } from "../src/lib/chain/constants";
 import { commitment, duelView, randomSalt, type DuelView } from "../src/lib/chain/duel";
 import { ataOf, configPda, duelPda, profilePda, sessionTokenPda, tablePda, trophyPda } from "../src/lib/chain/pdas";
+import { uniqueHandles } from "./lib/handles";
 import { adminKeypair, baseConnection, baseProgram, erConnection, erProgram, KEY_DIR, loadKeypair, namedKeypair, send, short, sleep } from "./lib/env";
 
 const base = baseConnection();
@@ -96,6 +97,7 @@ async function loadPlayers(mint: PublicKey): Promise<Player[]> {
     if (bal < 0.06 * LAMPORTS_PER_SOL) top.push(SystemProgram.transfer({ fromPubkey: admin.publicKey, toPubkey: p.key.publicKey, lamports: want - bal }));
   }
   for (let i = 0; i < top.length; i += 8) await tx(base, top.slice(i, i + 8), [admin], "fund players");
+  const names = uniqueHandles(players.map((p) => p.key.publicKey.toBase58()));
   await Promise.all(
     players.map(async (p, i) => {
       const ixs: TransactionInstruction[] = [];
@@ -104,7 +106,7 @@ async function loadPlayers(mint: PublicKey): Promise<Player[]> {
         ixs.push(createAssociatedTokenAccountIdempotentInstruction(p.key.publicKey, p.usdc, p.key.publicKey, mint));
         ixs.push(await ix.faucet(bp, p.key.publicKey, mint, p.usdc));
       }
-      if (!(await base.getAccountInfo(profilePda(p.key.publicKey)))) ixs.push(await ix.initProfile(bp, p.key.publicKey, `tester-${i}`));
+      if (!(await base.getAccountInfo(profilePda(p.key.publicKey)))) ixs.push(await ix.initProfile(bp, p.key.publicKey, names[i]));
       // One session key per player for the whole run (a player can sit in
       // several duels at once); it pays the delegation rent when it commits second.
       ixs.push(createSessionIx(p.key.publicKey, p.session.publicKey, Math.floor(Date.now() / 1000) + 3 * 3600, 0.04 * LAMPORTS_PER_SOL));
