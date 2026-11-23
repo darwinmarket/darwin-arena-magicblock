@@ -5,7 +5,7 @@
 // Le vainqueur vient du duel on-chain ; "Claim" force le règlement sur Solana si le
 // keeper ne l'a pas déjà fait (finish sur le rollup puis settle).
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useArena, type LiveDuel } from "@/lib/chain/ArenaProvider";
 import { STATUS } from "@/lib/chain/constants";
 import { usePlayer } from "@/lib/chain/hooks";
@@ -27,7 +27,7 @@ export function Result({
   live?: LiveDuel | null;
 }) {
   const { me } = useProfile();
-  const { claim, currentDuel } = useArena();
+  const { claim, currentDuel, refresh } = useArena();
   const [claiming, setClaiming] = useState(false);
   const [claimMsg, setClaimMsg] = useState<string | null>(null);
   const view = live?.view;
@@ -38,6 +38,10 @@ export function Result({
   const draw = view && view.winner !== 255 ? view.winner === 2 : outcome.myScore === outcome.oppScore;
   const settled = view?.status === STATUS.SETTLED && live?.layer === "base";
   const prize = (stake * 2 * 0.95).toFixed(2);
+  // Balance and rank change the moment the duel is settled.
+  useEffect(() => {
+    if (settled) refresh();
+  }, [settled, refresh]);
   const onClaim = async () => {
     if (currentDuel === null) return;
     setClaiming(true);
