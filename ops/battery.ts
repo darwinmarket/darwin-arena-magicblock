@@ -1,7 +1,7 @@
 // On-chain test battery: many players, many duels in parallel on devnet + the
 // MagicBlock ER, normal and adversarial paths, every result checked on chain.
 //
-//   npx tsx ops/battery.ts [players=8] [rounds=1]
+//   npx tsx ops/battery.ts [players=14] [rounds=1]
 //
 // Scenarios per round (all in parallel):
 //   - one regular duel per stake table (1 / 5 / 20), session keys, random
@@ -33,7 +33,7 @@ const er = erConnection();
 const bp = baseProgram();
 const ep = erProgram();
 const crank = namedKeypair("crank");
-const N_PLAYERS = Number(process.argv[2] ?? 8);
+const N_PLAYERS = Math.max(14, Number(process.argv[2] ?? 14));
 const ROUNDS = Number(process.argv[3] ?? 1);
 const DRAFT_GRACE = 30;
 const REVEAL_SECONDS = 45;
@@ -380,16 +380,18 @@ async function main() {
   }
   const p = (i: number) => players[i % players.length];
   for (let r = 0; r < ROUNDS; r++) {
-    const o = r * 2;
+    // Every seat in a round is a different player, so balance and profile
+    // deltas can be checked per duel; pairings rotate between rounds.
+    const o = r * 3;
     const same = randomWeights();
     const plans: DuelPlan[] = [
       { label: "regular 1", tier: 0, a: p(o), b: p(o + 1), weights: [randomWeights(), randomWeights()], commit: [true, true], reveal: [true, true], adversarial: true },
       { label: "regular 5", tier: 1, a: p(o + 2), b: p(o + 3), weights: [randomWeights(), randomWeights()], commit: [true, true], reveal: [true, true] },
       { label: "regular 20", tier: 2, a: p(o + 4), b: p(o + 5), weights: [randomWeights(), randomWeights()], commit: [true, true], reveal: [true, true] },
       { label: "mirror", tier: 0, a: p(o + 6), b: p(o + 7), weights: [same, [...same]], commit: [true, true], reveal: [true, true] },
-      { label: "forfeit", tier: 1, a: p(o + 1), b: p(o + 4), weights: [randomWeights(), randomWeights()], commit: [true, true], reveal: [true, false] },
-      { label: "no-show", tier: 2, a: p(o + 3), b: p(o + 6), weights: [randomWeights(), randomWeights()], commit: [true, true], reveal: [false, false] },
-      { label: "abandoned", tier: 0, a: p(o + 5), b: p(o + 2), weights: [randomWeights(), randomWeights()], commit: [true, false], reveal: [false, false] },
+      { label: "forfeit", tier: 1, a: p(o + 8), b: p(o + 9), weights: [randomWeights(), randomWeights()], commit: [true, true], reveal: [true, false] },
+      { label: "no-show", tier: 2, a: p(o + 10), b: p(o + 11), weights: [randomWeights(), randomWeights()], commit: [true, true], reveal: [false, false] },
+      { label: "abandoned", tier: 0, a: p(o + 12), b: p(o + 13), weights: [randomWeights(), randomWeights()], commit: [true, false], reveal: [false, false] },
     ];
     const only = process.env.ONLY?.split(",");
     const run = only ? plans.filter((x) => only.includes(x.label)) : plans;
