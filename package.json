@@ -12,7 +12,8 @@
     "test:local": "bash ops/test/run-local.sh",
     "setup": "tsx ops/setup.ts",
     "keeper": "tsx ops/keeper.ts",
-    "e2e": "tsx ops/e2e.ts"
+    "e2e": "tsx ops/e2e.ts",
+    "battery": "tsx ops/battery.ts"
   },
   "dependencies": {
     "@coral-xyz/anchor": "0.32.1",
