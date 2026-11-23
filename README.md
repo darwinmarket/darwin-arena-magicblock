@@ -136,9 +136,11 @@ ops/             setup, keeper + bot, e2e scripts and tests
    The exponent stored in the account is not the price scale: take it from
    `pyth_lazer_list.json`.
 3. **One `ScheduleTask` runs a whole duel.** 300 iterations at 1000 ms gave 301 ticks over
-   300 s in every battery duel. Task ids are validator-global on 1.1.1, so ours are
+   300 s in every battery duel (18 duels). Task ids are validator-global on 1.1.1, so ours are
    derived from the duel address.
-4. **VRF inside the ER is quick.** Request to applied callback: median 1.6 s, max 2.1 s.
+4. **VRF inside the ER is quick.** Request to applied callback: median 1.3 s, max 2.0 s
+   (36 requests). Delegation is visible on the ER 0.16 s (median) after the commit lands;
+   commit + undelegate is back on Solana in 1.6 s.
 5. **Whoever delegates pays rent.** A session key topped up with 0.003 SOL failed the
    commit + delegate transaction with `InsufficientFundsForRent`; 0.02 SOL covers it.
 6. **Session keys without cloning the token into the ER.** The `SessionTokenV2` is
@@ -159,4 +161,6 @@ ops/             setup, keeper + bot, e2e scripts and tests
 | browser e2e | faucet clickable before the config loaded; config load never retried | PR #6 |
 | battery | the battery reused one session token per player across parallel duels (test bug) | battery PR |
 
-The last on-chain battery run is in [BATTERY.md](BATTERY.md).
+The last on-chain battery run is in [BATTERY.md](BATTERY.md): 21 duels in 3 rounds of 7
+parallel duels across the three tables (regular, mirror, forfeit, double no-show,
+abandoned draft), 14 players, **257 / 257 checks passed**.
