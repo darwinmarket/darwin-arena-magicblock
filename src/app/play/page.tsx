@@ -34,8 +34,10 @@ export default function PlayPage() {
       setStep("lobby");
     } else if (status === STATUS.LIVE) setStep((s) => (s === "result" ? s : "duel"));
     else if (status === STATUS.DRAFTING && seated) setStep((s) => (s === "lobby" ? s : "draft"));
-    else if ((status === STATUS.FINISHED || status === STATUS.SETTLED) && step !== "result") setStep("duel");
-  }, [status, seated, step, setCurrentDuel]);
+    // Functional update: the Duel screen may have just moved us to the result in
+    // the same commit, and a stale `step` here would send us back.
+    else if (status === STATUS.FINISHED || status === STATUS.SETTLED) setStep((s) => (s === "result" ? s : "duel"));
+  }, [status, seated, setCurrentDuel]);
 
   const onMatched = useCallback((s: number) => {
     setStake(s);
