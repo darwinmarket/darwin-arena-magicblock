@@ -1,5 +1,6 @@
 // Pièce de jeu d'un actif : le vrai logo serti dans une pièce néon aux couleurs de la marque
 // (anneau en dégradé conique, liseré sombre, reflet brillant, halo).
+import { asset } from "@/lib/asset";
 import { TOKENS } from "@/lib/tokens";
 
 export function TokenCoin({ symbol, size = 48, glow = true }: { symbol: string; size?: number; glow?: boolean }) {
@@ -18,7 +19,7 @@ export function TokenCoin({ symbol, size = 48, glow = true }: { symbol: string; 
       <div className="absolute rounded-full bg-[#0b0716]" style={{ inset: ring }} />
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={t.logo}
+        src={asset(t.logo)}
         alt={symbol}
         draggable={false}
         className="absolute rounded-full object-cover"
