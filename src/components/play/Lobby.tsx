@@ -173,7 +173,7 @@ export function Lobby({ onMatched, live = null }: { onMatched: (stake: number) =
               onClick={find}
               className="flex-1 rounded-2xl bg-gradient-to-r from-[#ff3fb4] via-[#ff6a3d] to-[#ffc861] py-4 font-display text-xl font-bold uppercase tracking-wider text-[#1a0612] shadow-[0_10px_40px_-10px_#ff3fb4] transition hover:brightness-110 disabled:opacity-60"
             >
-              {pending ? "Staking…" : searching ? "Searching…" : connected ? `Find a match for ${stake} USDC` : "Connect wallet to play"}
+              {pending ? "Confirm in your wallet…" : searching ? "Searching…" : connected ? `Find a match for ${stake} USDC` : "Connect wallet to play"}
             </button>
             {seat && !found ? (
               <button
