@@ -821,6 +821,79 @@ export type DarwinArena = {
       "args": []
     },
     {
+      "name": "mintTrophy",
+      "docs": [
+        "\"Mint this basket\": the winner of a settled duel records the winning",
+        "basket as an on-chain trophy, one per duel, owned by the winner."
+      ],
+      "discriminator": [
+        215,
+        184,
+        115,
+        168,
+        63,
+        228,
+        76,
+        13
+      ],
+      "accounts": [
+        {
+          "name": "winner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "duel",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  117,
+                  101,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "duel.id",
+                "account": "duel"
+              }
+            ]
+          }
+        },
+        {
+          "name": "trophy",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  111,
+                  112,
+                  104,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "duel"
+              }
+            ]
+          }
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "openDuel",
       "docs": [
         "Sit at an empty table: escrow the stake and open a duel waiting for a rival."
@@ -1577,6 +1650,19 @@ export type DarwinArena = {
         230,
         112
       ]
+    },
+    {
+      "name": "trophy",
+      "discriminator": [
+        82,
+        8,
+        120,
+        249,
+        41,
+        102,
+        228,
+        234
+      ]
     }
   ],
   "errors": [
@@ -1724,6 +1810,11 @@ export type DarwinArena = {
       "code": 6028,
       "name": "insufficientFunds",
       "msg": "Not enough test USDC"
+    },
+    {
+      "code": 6029,
+      "name": "notTheWinner",
+      "msg": "Only the winner of a settled duel can mint its trophy"
     }
   ],
   "types": [
@@ -2275,6 +2366,81 @@ export type DarwinArena = {
           {
             "name": "duels",
             "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "trophy",
+      "docs": [
+        "A winning basket, recorded by its winner after settlement."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "duel",
+            "type": "pubkey"
+          },
+          {
+            "name": "duelId",
+            "type": "u64"
+          },
+          {
+            "name": "opponent",
+            "type": "pubkey"
+          },
+          {
+            "name": "weights",
+            "docs": [
+              "The basket as drafted (weights in %, per asset)."
+            ],
+            "type": {
+              "array": [
+                "u8",
+                6
+              ]
+            }
+          },
+          {
+            "name": "score",
+            "type": "i64"
+          },
+          {
+            "name": "oppScore",
+            "type": "i64"
+          },
+          {
+            "name": "stake",
+            "type": "u64"
+          },
+          {
+            "name": "mutations",
+            "docs": [
+              "The three mutations the basket lived through."
+            ],
+            "type": {
+              "array": [
+                {
+                  "defined": {
+                    "name": "mutationSlot"
+                  }
+                },
+                3
+              ]
+            }
+          },
+          {
+            "name": "mintedTs",
+            "type": "i64"
           },
           {
             "name": "bump",
