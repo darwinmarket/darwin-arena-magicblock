@@ -68,3 +68,29 @@ export function usePlayer(key: PublicKey | null | undefined, everyMs = 15_000): 
   }, [k, program, everyMs]);
   return player;
 }
+
+export interface MarketHistory {
+  change24h: number;
+  closes: number[];
+}
+
+/// 24 h change and hourly closes per asset, from the site's /api/market route.
+export function useMarketHistory(): Record<string, MarketHistory> {
+  const [data, setData] = useState<Record<string, MarketHistory>>({});
+  useEffect(() => {
+    let stop = false;
+    const base = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+    const load = () =>
+      fetch(`${base}/api/market`)
+        .then((r) => r.json())
+        .then((j: { assets?: Record<string, MarketHistory> }) => !stop && j.assets && setData(j.assets))
+        .catch(() => {});
+    load();
+    const t = setInterval(load, 5 * 60_000);
+    return () => {
+      stop = true;
+      clearInterval(t);
+    };
+  }, []);
+  return data;
+}
