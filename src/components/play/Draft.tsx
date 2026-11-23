@@ -10,7 +10,7 @@ import { GameTimer, TimeDrain } from "@/components/game/GameTimer";
 import { TokenCoin } from "@/components/game/TokenCoin";
 import { Panel } from "@/components/ui";
 import { useArena, type LiveDuel } from "@/lib/chain/ArenaProvider";
-import { usePlayer, usePrices } from "@/lib/chain/hooks";
+import { useMarketHistory, usePlayer, usePrices } from "@/lib/chain/hooks";
 import { ASSETS, DRAFT_SECONDS } from "@/lib/mock";
 import { formatPrice, sparkline, TOKEN_CLASSES, TOKENS, type TokenClass } from "@/lib/tokens";
 import type { Asset, BasketLeg } from "@/lib/types";
@@ -43,6 +43,7 @@ export function Draft({
 }) {
   const { commitBasket, currentDuel } = useArena();
   const prices = usePrices();
+  const history = useMarketHistory();
   const [legs, setLegs] = useState<BasketLeg[]>(initial);
   const [left, setLeft] = useState(DRAFT_SECONDS);
   const [filter, setFilter] = useState<TokenClass | "All">("All");
@@ -100,9 +101,14 @@ export function Draft({
   const market = useMemo(
     () =>
       ASSETS.filter((a) => filter === "All" || TOKENS[a.symbol]?.klass === filter).map((a) =>
-        prices[a.symbol] ? { ...a, price: prices[a.symbol] } : a,
+        ({
+          ...a,
+          price: prices[a.symbol] ?? a.price,
+          change24h: history[a.symbol]?.change24h ?? a.change24h,
+          closes: history[a.symbol]?.closes,
+        }),
       ),
-    [filter, prices],
+    [filter, prices, history],
   );
 
   const lockHint =
@@ -334,8 +340,9 @@ function BasketSlot({
   );
 }
 
-function Sparkline({ symbol, change }: { symbol: string; change: number }) {
-  const pts = sparkline(symbol, change);
+function Sparkline({ symbol, change, closes }: { symbol: string; change: number; closes?: number[] }) {
+  // Real hourly closes when the market route answered, the placeholder curve otherwise.
+  const pts = closes && closes.length > 1 ? closes : sparkline(symbol, change);
   const min = Math.min(...pts);
   const max = Math.max(...pts);
   const W = 200;
@@ -360,7 +367,17 @@ function Sparkline({ symbol, change }: { symbol: string; change: number }) {
   );
 }
 
-function TokenCard({ asset, slot, full, onClick }: { asset: Asset; slot: number; full: boolean; onClick: () => void }) {
+function TokenCard({
+  asset,
+  slot,
+  full,
+  onClick,
+}: {
+  asset: Asset & { closes?: number[] };
+  slot: number;
+  full: boolean;
+  onClick: () => void;
+}) {
   const t = TOKENS[asset.symbol];
   const picked = slot >= 0;
   const up = asset.change24h >= 0;
@@ -411,7 +428,7 @@ function TokenCard({ asset, slot, full, onClick }: { asset: Asset; slot: number;
           {up ? "▲" : "▼"} {Math.abs(asset.change24h).toFixed(1)}%
         </span>
       </div>
-      <Sparkline symbol={asset.symbol} change={asset.change24h} />
+      <Sparkline symbol={asset.symbol} change={asset.change24h} closes={asset.closes} />
 
       {/* jauge de volatilité */}
       <div className="mt-2 flex items-center justify-between">
