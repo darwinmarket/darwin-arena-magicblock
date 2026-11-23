@@ -7,10 +7,10 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-darwin_arena = "DjsXYvzbZFhM5rdDiq9Dvc4YgA7roLZLDB5tD7KnpcpA"
+darwin_arena = "GnQC4MjzjS8AZvtj5VR64ovJupSm93yCiYz1ZkLyzFNp"
 
 [programs.devnet]
-darwin_arena = "DjsXYvzbZFhM5rdDiq9Dvc4YgA7roLZLDB5tD7KnpcpA"
+darwin_arena = "GnQC4MjzjS8AZvtj5VR64ovJupSm93yCiYz1ZkLyzFNp"
 
 [provider]
 cluster = "devnet"
