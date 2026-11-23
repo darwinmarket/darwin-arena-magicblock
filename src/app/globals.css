@@ -93,3 +93,12 @@ body {
 .arena-toast { animation: arena-toast 4s cubic-bezier(0.2, 0.9, 0.3, 1) both; }
 @keyframes arena-toast-bar { from { width: 100%; } to { width: 0%; } }
 .arena-toast-bar { animation: arena-toast-bar 4s linear both; }
+
+/* Accueil : reflet qui balaie le bouton Play, halo qui respire, entrée du titre */
+@keyframes arena-shine { 0%, 55% { transform: translateX(-120%) skewX(-20deg); } 100% { transform: translateX(260%) skewX(-20deg); } }
+.arena-shine { animation: arena-shine 3.2s ease-in-out infinite; }
+@keyframes arena-breathe { 0%, 100% { opacity: 0.55; transform: scale(1); } 50% { opacity: 1; transform: scale(1.04); } }
+.arena-breathe { animation: arena-breathe 2.4s ease-in-out infinite; }
+@keyframes arena-rise { from { opacity: 0; transform: translateY(14px); filter: blur(6px); } to { opacity: 1; transform: none; filter: none; } }
+.arena-rise { animation: arena-rise 0.7s cubic-bezier(.2,.8,.2,1) both; }
+@media (prefers-reduced-motion: reduce) { .arena-shine, .arena-breathe, .arena-rise { animation: none; } }
