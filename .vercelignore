@@ -1,4 +1,5 @@
 # Only the Next.js front is deployed: keep the Anchor workspace and ops scripts out of the upload.
-chain/
-ops/
-*.md
+# Anchored to the root so src/lib/chain stays in.
+/chain/
+/ops/
+/*.md
