@@ -45,6 +45,8 @@ pub const PROFILE_SEED: &[u8] = b"profile";
 pub const TABLE_SEED: &[u8] = b"table";
 pub const DUEL_SEED: &[u8] = b"duel";
 pub const TROPHY_SEED: &[u8] = b"trophy";
+/// How far above the counter a new duel id may be picked.
+pub const ID_WINDOW: u64 = 1024;
 
 pub const DECIMALS: u8 = 6;
 pub const ONE_USDC: u64 = 1_000_000;
@@ -154,8 +156,15 @@ pub mod darwin_arena {
     }
 
     /// Sit at an empty table: escrow the stake and open a duel waiting for a rival.
-    pub fn open_duel(ctx: Context<OpenDuel>, tier: u8) -> Result<()> {
+    ///
+    /// The caller picks the duel id: any free id in the window just above the
+    /// counter (`duel_count .. duel_count + ID_WINDOW`). Clients pick a random
+    /// slot, so two players opening at the same moment almost never compete for
+    /// the same address (seeding by the counter itself made every concurrent
+    /// open but one fail with ConstraintSeeds).
+    pub fn open_duel(ctx: Context<OpenDuel>, tier: u8, id: u64) -> Result<()> {
         let now = Clock::get()?.unix_timestamp;
+        require!(id < ctx.accounts.config.duel_count + ID_WINDOW, ArenaError::BadDuelId);
         let table = &mut ctx.accounts.table;
         require!(table.waiting == Pubkey::default(), ArenaError::TableBusy);
         let stake = STAKES[tier as usize] * ONE_USDC;
@@ -164,7 +173,7 @@ pub mod darwin_arena {
         let config = &mut ctx.accounts.config;
         let duel_key = ctx.accounts.duel.key();
         let d = &mut ctx.accounts.duel;
-        d.id = config.duel_count;
+        d.id = id;
         d.tier = tier;
         d.stake = stake;
         d.players[0] = ctx.accounts.player.key();
@@ -175,7 +184,7 @@ pub mod darwin_arena {
         d.mult = [1; ASSETS];
         d.rebalances_left = [MAX_REBALANCES; 2];
         d.bump = ctx.bumps.duel;
-        config.duel_count += 1;
+        config.duel_count = config.duel_count.max(id + 1);
         table.waiting = duel_key;
         table.waiting_since = now;
         Ok(())
@@ -713,7 +722,7 @@ pub struct SetName<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(tier: u8)]
+#[instruction(tier: u8, id: u64)]
 pub struct OpenDuel<'info> {
     #[account(mut)]
     pub player: Signer<'info>,
@@ -728,7 +737,7 @@ pub struct OpenDuel<'info> {
         init,
         payer = player,
         space = 8 + Duel::INIT_SPACE,
-        seeds = [DUEL_SEED, &config.duel_count.to_le_bytes()],
+        seeds = [DUEL_SEED, &id.to_le_bytes()],
         bump
     )]
     pub duel: Box<Account<'info, Duel>>,
