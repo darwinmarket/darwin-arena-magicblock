@@ -13,6 +13,8 @@ import { adminKeypair, baseConnection, send } from "../lib/env";
 
 const URL = process.env.APP_URL ?? "http://localhost:3040";
 const SHOTS = process.env.SHOTS ?? "/tmp/darwin-ui";
+/// Judge's path: an empty wallet, the site's SOL faucet, test USDC minted in the stake transaction.
+const ONBOARD = !!process.env.ONBOARD;
 
 async function shot(page: Page, name: string) {
   await page.screenshot({ path: path.join(SHOTS, `${name}.png`), fullPage: false });
@@ -23,8 +25,12 @@ async function main() {
   fs.mkdirSync(SHOTS, { recursive: true });
   const burner = Keypair.generate();
   const conn = baseConnection();
-  await send(conn, [SystemProgram.transfer({ fromPubkey: adminKeypair().publicKey, toPubkey: burner.publicKey, lamports: 0.12 * LAMPORTS_PER_SOL })], [adminKeypair()]);
-  console.log(`burner ${burner.publicKey.toBase58()} funded with 0.12 SOL`);
+  if (ONBOARD) {
+    console.log(`burner ${burner.publicKey.toBase58()} starts empty: the site's faucet must fund it`);
+  } else {
+    await send(conn, [SystemProgram.transfer({ fromPubkey: adminKeypair().publicKey, toPubkey: burner.publicKey, lamports: 0.12 * LAMPORTS_PER_SOL })], [adminKeypair()]);
+    console.log(`burner ${burner.publicKey.toBase58()} funded with 0.12 SOL`);
+  }
 
   const browser = await chromium.launch();
   const page = await browser.newPage({ viewport: { width: 1400, height: 1000 } });
@@ -55,14 +61,19 @@ async function play(page: Page, burner: Keypair, errors: string[]) {
   await page.goto(`${URL}/play`);
   // Wait for the wallet and the config to load (balance shown) before the faucet.
   await page.locator("header").first().getByText(/\d+\.\d\d USDC/).waitFor({ timeout: 60_000 });
-  await page.getByText("+ Test USDC").click({ timeout: 60_000 });
-  await page.getByText(/100\.00 USDC/).waitFor({ timeout: 60_000 });
-  step("faucet: 100 test USDC");
+  if (ONBOARD) {
+    await page.locator("header").first().getByText(/0\.0[5-9]\d SOL/).waitFor({ timeout: 60_000 });
+    step("devnet SOL received from the site's faucet, no click");
+  } else {
+    await page.getByText("+ Test USDC").click({ timeout: 60_000 });
+    await page.getByText(/100\.00 USDC/).waitFor({ timeout: 60_000 });
+    step("faucet: 100 test USDC");
+  }
   await shot(page, "01-lobby");
 
   await page.getByText("Rookie Pit").click();
   await page.getByText("Find a match for 1 USDC").click();
-  step("staked 1 USDC, waiting at the table");
+  step(ONBOARD ? "test USDC minted + staked 1 USDC in one approval, waiting at the table" : "staked 1 USDC, waiting at the table");
   if (process.env.PRACTICE) {
     // No keeper: summon the in-browser practice bot.
     await page.getByText("Play the practice bot").click({ timeout: 30_000 });

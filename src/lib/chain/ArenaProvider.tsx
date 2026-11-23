@@ -52,6 +52,9 @@ interface ArenaCtx {
   mint: PublicKey | null;
   refresh: () => Promise<void>;
   claimFaucet: () => Promise<string>;
+  /// Devnet SOL drip from the site's faucet (server-side, rate limited).
+  requestSol: () => Promise<string>;
+  solStatus: "idle" | "requesting" | "funded" | "refused";
   createProfile: (name: string) => Promise<string>;
   findMatch: (stake: number) => Promise<number>;
   cancelWaiting: (duelId: number) => Promise<string>;
@@ -247,6 +250,12 @@ export function ArenaProvider({ children }: { children: ReactNode }) {
         ixs.push(await ix.initProfile(program, publicKey, `${publicKey.toBase58().slice(0, 4)}…${publicKey.toBase58().slice(-4)}`));
       }
       const usdcAta = ataOf(publicKey, config.mint);
+      // No test USDC yet? Mint it in the same approval as the stake.
+      const held = await base.getTokenAccountBalance(usdcAta).then((b) => Number(b.value.amount) / 1e6).catch(() => 0);
+      if (held < stake) {
+        ixs.push(createAssociatedTokenAccountIdempotentInstruction(publicKey, usdcAta, publicKey, config.mint));
+        ixs.push(await ix.faucet(program, publicKey, config.mint, usdcAta));
+      }
       let id: number;
       if (!table.waiting.equals(PublicKey.default)) {
         id = (await program.account.duel.fetch(table.waiting)).id.toNumber();
@@ -347,6 +356,37 @@ export function ArenaProvider({ children }: { children: ReactNode }) {
     [publicKey, base, program, sendWallet, note],
   );
 
+  const [solStatus, setSolStatus] = useState<ArenaCtx["solStatus"]>("idle");
+  const requestSol = useCallback(async () => {
+    if (!publicKey) throw new Error("Connect a wallet first");
+    setSolStatus("requesting");
+    const base = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+    const res = await fetch(`${base}/api/faucet`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ wallet: publicKey.toBase58() }),
+    });
+    const body = (await res.json().catch(() => ({}))) as { signature?: string; error?: string };
+    if (!res.ok || !body.signature) {
+      setSolStatus("refused");
+      throw new Error(body.error ?? `faucet error ${res.status}`);
+    }
+    setSolStatus("funded");
+    note("Devnet SOL received ✓");
+    await refresh();
+    return body.signature;
+  }, [publicKey, note, refresh]);
+
+  // Zero-friction onboarding: a connected wallet without enough devnet SOL to
+  // play gets a drip automatically, once per wallet per browser session.
+  useEffect(() => {
+    if (!publicKey || sol === null || sol >= 0.03) return;
+    const key = `darwin-arena:sol-drip:${publicKey.toBase58()}`;
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, "1");
+    requestSol().catch(() => {});
+  }, [publicKey, sol, requestSol]);
+
   const value: ArenaCtx = {
     base,
     er,
@@ -359,6 +399,8 @@ export function ArenaProvider({ children }: { children: ReactNode }) {
     mint: config?.mint ?? null,
     refresh,
     claimFaucet,
+    requestSol,
+    solStatus,
     createProfile,
     findMatch,
     cancelWaiting,
