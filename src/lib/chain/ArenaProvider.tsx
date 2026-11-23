@@ -250,6 +250,12 @@ export function ArenaProvider({ children }: { children: ReactNode }) {
         ixs.push(await ix.initProfile(program, publicKey, `${publicKey.toBase58().slice(0, 4)}…${publicKey.toBase58().slice(-4)}`));
       }
       const usdcAta = ataOf(publicKey, config.mint);
+      // No test USDC yet? Mint it in the same approval as the stake.
+      const held = await base.getTokenAccountBalance(usdcAta).then((b) => Number(b.value.amount) / 1e6).catch(() => 0);
+      if (held < stake) {
+        ixs.push(createAssociatedTokenAccountIdempotentInstruction(publicKey, usdcAta, publicKey, config.mint));
+        ixs.push(await ix.faucet(program, publicKey, config.mint, usdcAta));
+      }
       let id: number;
       if (!table.waiting.equals(PublicKey.default)) {
         id = (await program.account.duel.fetch(table.waiting)).id.toNumber();
