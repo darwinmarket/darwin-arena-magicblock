@@ -16,10 +16,10 @@ export class BurnerWalletAdapter extends BaseSignerWalletAdapter {
   name = "Burner (devnet)" as WalletName<"Burner (devnet)">;
   url = "https://docs.solana.com";
   icon =
-    "data:image/svg+xml;base64," +
-    (typeof btoa !== "undefined"
-      ? btoa('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#ff6a3d"/><text x="16" y="22" font-size="16" text-anchor="middle" fill="#1a0612">🔥</text></svg>')
-      : "");
+    "data:image/svg+xml," +
+    encodeURIComponent(
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#ff6a3d"/><text x="16" y="21" font-size="14" font-family="sans-serif" font-weight="bold" text-anchor="middle" fill="#1a0612">B</text></svg>',
+    );
   readyState = WalletReadyState.Loadable;
   supportedTransactionVersions: ReadonlySet<TransactionVersion> = new Set(["legacy", 0] as TransactionVersion[]);
   private keypair: Keypair | null = null;
