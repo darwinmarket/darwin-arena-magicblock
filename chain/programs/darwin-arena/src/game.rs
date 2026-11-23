@@ -260,7 +260,7 @@ impl Duel {
         }
     }
 
-    pub fn rebalance(&mut self, slot: usize, w: [u8; ASSETS]) -> Result<()> {
+    pub fn rebalance(&mut self, slot: usize, w: [u8; ASSETS], now: i64) -> Result<()> {
         require!(self.rebalances_left[slot] > 0, ArenaError::NoRebalanceLeft);
         let cur = self.weights[slot];
         for i in 0..ASSETS {
@@ -269,7 +269,7 @@ impl Duel {
         require!(w.iter().all(|x| x % WEIGHT_STEP == 0), ArenaError::BadBasket);
         require!(w.iter().map(|x| *x as u32).sum::<u32>() == 100, ArenaError::BadBasket);
         let f = self.frozen_asset;
-        if f != NONE && self.frozen_until > 0 {
+        if f != NONE && self.is_frozen(f as usize, now) {
             require!(w[f as usize] == cur[f as usize], ArenaError::FrozenAsset);
         }
         self.weights[slot] = w;
@@ -446,14 +446,14 @@ mod tests {
     fn path_dependence_and_rebalance() {
         let mut d = live();
         d.advance(&[110, 100, 100, 100, 100, 100], 1001); // +5 %
-        d.rebalance(0, [10, 45, 45, 0, 0, 0]).unwrap();
+        d.rebalance(0, [10, 45, 45, 0, 0, 0], 1001).unwrap();
         d.advance(&[121, 100, 100, 100, 100, 100], 1002); // SOL +10 % again, only 10 % weight now
         assert_eq!(d.score[0], 5 * PCT + PCT);
         assert_eq!(d.rebalances_left[0], 1);
         // assets must stay the same
-        assert!(d.rebalance(0, [10, 45, 0, 45, 0, 0]).is_err());
-        d.rebalance(0, [20, 40, 40, 0, 0, 0]).unwrap();
-        assert!(d.rebalance(0, [30, 35, 35, 0, 0, 0]).is_err()); // none left
+        assert!(d.rebalance(0, [10, 45, 0, 45, 0, 0], 1002).is_err());
+        d.rebalance(0, [20, 40, 40, 0, 0, 0], 1002).unwrap();
+        assert!(d.rebalance(0, [30, 35, 35, 0, 0, 0], 1003).is_err()); // none left
     }
 
     #[test]
@@ -467,7 +467,7 @@ mod tests {
         d.advance(&[150, 100, 100, 100, 100, 100], 1010);
         assert_eq!(d.score[0], 10 * PCT); // frozen: no change
         assert_eq!(d.last_price[0], 150); // but reference follows the market
-        assert!(d.rebalance(0, [40, 40, 20, 0, 0, 0]).is_err()); // frozen SOL weight locked
+        assert!(d.rebalance(0, [40, 40, 20, 0, 0, 0], 1010).is_err()); // frozen SOL weight locked
         d.advance(&[165, 100, 100, 100, 100, 100], 1031); // freeze over
         assert_eq!(d.frozen_asset, NONE);
         d.advance(&[181, 100, 100, 100, 100, 100], 1032);
@@ -503,6 +503,15 @@ mod tests {
         let m = d.draw_mutation(&r, 1240);
         assert_eq!(m.kind, KIND_DOUBLE);
         assert_eq!(d.mult[m.a as usize], 2);
+    }
+
+    #[test]
+    fn frozen_lock_ends_with_the_freeze() {
+        let mut d = live();
+        d.frozen_asset = 0;
+        d.frozen_until = 1031;
+        assert!(d.rebalance(0, [40, 40, 20, 0, 0, 0], 1030).is_err());
+        d.rebalance(0, [40, 40, 20, 0, 0, 0], 1031).unwrap(); // no tick since, still unlocked
     }
 
     #[test]
