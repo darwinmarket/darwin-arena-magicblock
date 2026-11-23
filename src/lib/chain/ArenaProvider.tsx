@@ -96,7 +96,21 @@ export function ArenaProvider({ children }: { children: ReactNode }) {
   const note = useCallback((s: string) => setActivity((a) => [s, ...a].slice(0, 30)), []);
 
   useEffect(() => {
-    program.account.config.fetch(configPda()).then((c) => setConfig({ mint: c.usdcMint, vault: c.vault })).catch(() => {});
+    // Retry until the arena config loads (a flaky RPC answer must not leave the
+    // whole game without its mint and vault).
+    let stop = false;
+    const load = () =>
+      program.account.config
+        .fetch(configPda())
+        .then((c) => !stop && setConfig({ mint: c.usdcMint, vault: c.vault }))
+        .catch((e) => {
+          console.warn("arena config", e);
+          if (!stop) setTimeout(load, 2000);
+        });
+    load();
+    return () => {
+      stop = true;
+    };
   }, [program]);
 
   useEffect(() => {
@@ -138,7 +152,8 @@ export function ArenaProvider({ children }: { children: ReactNode }) {
   /// Wallet-signed base-layer transaction, optionally co-signed by fresh keys.
   const sendWallet = useCallback(
     async (ixs: TransactionInstruction[], label: string, cosigners: Keypair[] = []) => {
-      if (!publicKey || !signTransaction) throw new Error("Connect a wallet first");
+      if (!publicKey) throw new Error("Connect a wallet first");
+      if (!signTransaction) throw new Error("This wallet cannot sign transactions");
       const tx = new Transaction().add(...ixs);
       tx.feePayer = publicKey;
       tx.recentBlockhash = (await base.getLatestBlockhash("confirmed")).blockhash;
@@ -188,7 +203,8 @@ export function ArenaProvider({ children }: { children: ReactNode }) {
   }, [publicKey, base]);
 
   const claimFaucet = useCallback(async () => {
-    if (!publicKey || !config) throw new Error("Connect a wallet first");
+    if (!publicKey) throw new Error("Connect a wallet first");
+    if (!config) throw new Error("Arena config not loaded yet, retry in a second");
     const ata = ataOf(publicKey, config.mint);
     const sig = await sendWallet(
       [createAssociatedTokenAccountIdempotentInstruction(publicKey, ata, publicKey, config.mint), await ix.faucet(program, publicKey, config.mint, ata)],
@@ -212,7 +228,8 @@ export function ArenaProvider({ children }: { children: ReactNode }) {
   /// approval: profile (first time), stake, session key.
   const findMatch = useCallback(
     async (stake: number) => {
-      if (!publicKey || !config) throw new Error("Connect a wallet first");
+      if (!publicKey) throw new Error("Connect a wallet first");
+    if (!config) throw new Error("Arena config not loaded yet, retry in a second");
       const tier = STAKES.indexOf(stake);
       const table = await program.account.table.fetch(tablePda(tier));
       if (!table.waiting.equals(PublicKey.default)) {
@@ -246,7 +263,8 @@ export function ArenaProvider({ children }: { children: ReactNode }) {
 
   const cancelWaiting = useCallback(
     async (duelId: number) => {
-      if (!publicKey || !config) throw new Error("Connect a wallet first");
+      if (!publicKey) throw new Error("Connect a wallet first");
+    if (!config) throw new Error("Arena config not loaded yet, retry in a second");
       const d = await program.account.duel.fetch(duelPda(duelId));
       const sig = await sendWallet([await ix.cancelDuel(program, publicKey, d.tier, duelId, ataOf(publicKey, config.mint), null, config.vault)], "Leave table");
       setCurrentDuel(null);
@@ -290,7 +308,8 @@ export function ArenaProvider({ children }: { children: ReactNode }) {
   /// then settle on Solana (the keeper normally does both within seconds).
   const claim = useCallback(
     async (duelId: number) => {
-      if (!publicKey || !config) throw new Error("Connect a wallet first");
+      if (!publicKey) throw new Error("Connect a wallet first");
+    if (!config) throw new Error("Arena config not loaded yet, retry in a second");
       for (let i = 0; i < 40; i++) {
         const ai = await base.getAccountInfo(duelPda(duelId));
         if (!ai) return null;
