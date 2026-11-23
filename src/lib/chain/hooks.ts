@@ -94,3 +94,49 @@ export function useMarketHistory(): Record<string, MarketHistory> {
   }, []);
   return data;
 }
+
+export interface LeaderRow {
+  key: PublicKey;
+  player: Player;
+  points: number;
+  wins: number;
+  losses: number;
+  games: number;
+}
+
+/// Every profile on chain (one getProgramAccounts), ranked by points then wins.
+export function useLeaderboard(everyMs = 30_000): LeaderRow[] {
+  const { program } = useArena();
+  const [rows, setRows] = useState<LeaderRow[]>([]);
+  useEffect(() => {
+    let stop = false;
+    const load = () =>
+      program.account.profile
+        .all()
+        .then((all) => {
+          if (stop) return;
+          const n = (x: { toString(): string }) => Number(x.toString());
+          setRows(
+            all
+              .map(({ account }) => ({
+                key: account.authority,
+                player: playerFromProfile(account.authority, account),
+                points: n(account.points),
+                wins: n(account.wins),
+                losses: n(account.losses),
+                games: n(account.games),
+              }))
+              .filter((r) => r.games > 0)
+              .sort((a, b) => b.points - a.points || b.wins - a.wins || a.games - b.games),
+          );
+        })
+        .catch(() => {});
+    load();
+    const t = setInterval(load, everyMs);
+    return () => {
+      stop = true;
+      clearInterval(t);
+    };
+  }, [program, everyMs]);
+  return rows;
+}
