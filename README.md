@@ -63,6 +63,11 @@ less). The fallback we planned (a keeper pushing Pyth Hermes prices into our own
 account) is therefore not built. If a feed ever goes stale, `tick` simply holds that
 asset still until it is fresh again.
 
+The draft's market cards also show a 24 h change and an hourly sparkline. Pyth's
+historical endpoints (Hermes `updates/price/{time}`, Benchmarks) now require an API key,
+so that context comes from Binance's public klines mirror through a cached route
+(`/api/market`). It is display only: scoring and settlement use MagicBlock's feeds.
+
 ## What lives where
 
 | | Solana (base) | Ephemeral Rollup | Off-chain |
@@ -72,6 +77,9 @@ asset still until it is fresh again.
 | Basket commitments, session authorisation | ✓ | | |
 | Reveal, ticks, scores, mutations, rebalances | | ✓ | |
 | Profiles: rank points, W/L, streak, history | ✓ | | |
+| Trophies: winning baskets minted by their winner (`mint_trophy`) | ✓ | | |
+| Badges, leaderboard: computed from profiles and history | read | | front |
+| Devnet SOL faucet for new wallets (`/api/faucet`, rate limited) | | | ✓ (Next.js route) |
 | Keeper: delegate / start / VRF trigger / finish / settle if nobody else did, bot opponent | | | ✓ (`ops/keeper.ts`) |
 
 Every instruction the keeper sends is permissionless and also sent by the front, so
@@ -108,13 +116,19 @@ npm run dev -- -p 3040      # the game, on devnet
 npm run keeper              # optional: bot opponent + keeper (needs keys, see below)
 ```
 
-Open http://localhost:3040, connect Phantom (devnet) or pick **Burner (devnet)** and
-send it ~0.1 devnet SOL, click **+ Test USDC**, pick a table, **Find a match**.
+Open http://localhost:3040, connect Phantom (devnet) or pick **Burner (devnet)**. A wallet
+without devnet SOL gets 0.08 SOL from the site's faucet automatically (once a day per
+wallet; locally it needs `FAUCET_SECRET_KEY`, otherwise fund the wallet yourself). Pick a
+table, **Find a match**: the first stake transaction also mints 100 test USDC.
 
 Nobody else around? With the keeper running, its bot sits down after 8 s. Without
 it, after 10 s alone the lobby offers **Play the practice bot**: a second player that
 runs in your own browser (its own keypair, test USDC and on-chain profile) and plays
-its seat for real; your wallet only funds its fees once (0.03 SOL).
+its seat for real; your wallet only funds its fees once (0.02 SOL).
+
+After a win, **Mint this basket** records the winning basket as an on-chain trophy
+(shown in the Profile tab); **Share on X** posts the result with a link to the duel's
+public page.
 
 ### Hosting
 
@@ -122,6 +136,11 @@ The live front is a static Next.js build served at `darwin.market/arena-magicblo
 It is built with `NEXT_PUBLIC_BASE_PATH=/arena-magicblock` (see `next.config.ts`); public
 files referenced from plain `<img>` tags go through `src/lib/asset.ts` so they pick up the
 prefix. Locally the variable stays unset and the app lives at `/`.
+
+The faucet route signs with `FAUCET_SECRET_KEY` (a server-only env var set on the Vercel
+project, never `NEXT_PUBLIC_`). It sends 0.08 devnet SOL, refuses wallets holding 0.05 SOL
+or more, refuses a wallet it funded in the last 24 h (checked from the wallet's own
+transactions, so it holds across serverless instances) and limits requests per IP.
 
 ### Ops scripts (keys live in `~/.config/darwin-arena/`, never in the repo)
 
@@ -144,7 +163,8 @@ prefix. Locally the variable stays unset and the app lives at `/`.
 | Devnet + ER, two session-keyed players | `npm run e2e` | full duel: 301 crank ticks in 300 s, 3 VRF mutations, rebalance, commit + undelegate, settle |
 | Browser, keeper's bot | `npx tsx ops/test/ui.ts` | full duel through the UI in 328 s, 0 console errors |
 | Browser, practice bot, no server | `PRACTICE=1 npx tsx ops/test/ui.ts` | full duel through the UI in 331 s, 0 console errors |
-| On-chain battery | `npm run battery -- 14 3` | 21 duels, 257 / 257 checks ([BATTERY.md](BATTERY.md)) |
+| Hosted site, empty wallet | `APP_URL=https://darwin.market/arena-magicblock ONBOARD=1 PRACTICE=1 npx tsx ops/test/ui.ts` | SOL from the site faucet with no click, test USDC + stake in one approval, full duel, settled in 333 s, spectator page, 0 console errors |
+| On-chain battery | `npm run battery -- 14 3` | 21 duels, 293 / 293 checks incl. trophies ([BATTERY.md](BATTERY.md)) |
 
 ## Repository
 
@@ -180,7 +200,9 @@ ops/             setup, keeper + bot, e2e scripts and tests
 6. **Session keys without cloning the token into the ER.** The `SessionTokenV2` is
    verified on Solana at commit time and the session signer is recorded in the duel;
    the rollup only checks `signer == duel.session[slot]` (and the expiry).
-7. **Binary size is the main devnet cost.** `anchor-spl` constraints roughly doubled the
+7. **Pyth history needs a key now.** Hermes `updates/price/{time}` and Benchmarks answer
+   `unauthorized` without an API key; the live Lazer feeds on the ER need none.
+8. **Binary size is the main devnet cost.** `anchor-spl` constraints roughly doubled the
    program; hand-rolled token helpers keep it near 490 kB (about 2.5 SOL of rent).
 
 ### Bugs the tests found
@@ -194,7 +216,10 @@ ops/             setup, keeper + bot, e2e scripts and tests
 | browser e2e | result screen bounced back to the duel (stale effect state) | PR #6 |
 | browser e2e | faucet clickable before the config loaded; config load never retried | PR #6 |
 | battery | the battery reused one session token per player across parallel duels (test bug) | battery PR |
+| battery | devnet dropped one commit transaction; ops `send` now resends after the blockhash expires | PR #24 |
+| battery | a skipped rebalance was counted, so the "third rebalance" test sent the second (test bug; program correct) | PR #25 |
 
 The last on-chain battery run is in [BATTERY.md](BATTERY.md): 21 duels in 3 rounds of 7
 parallel duels across the three tables (regular, mirror, forfeit, double no-show,
-abandoned draft), 14 players, **257 / 257 checks passed**.
+abandoned draft), 14 players, **293 / 293 checks passed** (trophies included; 4 devnet
+transactions dropped and resent on the way).

@@ -1,287 +1,324 @@
 # Battery report
 
-Run 2026-11-23T14:13:02.831Z · program `GnQC4MjzjS8AZvtj5VR64ovJupSm93yCiYz1ZkLyzFNp` · 14 players · 3 round(s) · 981 s
+Run 2026-11-23T16:11:11.144Z · program `GnQC4MjzjS8AZvtj5VR64ovJupSm93yCiYz1ZkLyzFNp` · 14 players · 3 round(s) · 1053 s
 
-**257 / 257 checks passed.** Admin SOL 20.5577 -> 19.6170 (funding players).
+**293 / 293 checks passed.** Admin SOL 14.5413 -> 13.8707 (funding players).
 
 ## Latencies
 
 | step | n | median ms | max ms |
 |---|---|---|---|
-| fund players | 2 | 968 | 968 |
-| player setup + session | 14 | 976 | 1469 |
-| open | 21 | 962 | 1213 |
-| join | 21 | 1026 | 1445 |
-| commit | 21 | 1018 | 1529 |
-| commit + delegate | 18 | 1023 | 1547 |
-| delegation visible on ER | 18 | 160 | 760 |
-| reveal (ER) | 27 | 1009 | 1587 |
-| start + crank (ER) | 12 | 1028 | 1539 |
-| start (forfeit) | 6 | 1042 | 1344 |
-| finish (commit+undelegate) | 18 | 992 | 1442 |
-| undelegation back on Solana | 18 | 1639 | 3078 |
-| settle | 18 | 1020 | 1544 |
-| VRF request (ER) | 36 | 1014 | 1536 |
-| VRF request -> callback applied | 36 | 1290 | 1960 |
-| cancel draft | 3 | 1148 | 2014 |
-| rebalance (ER) | 45 | 1049 | 3141 |
+| fund players | 2 | 1051 | 1051 |
+| player setup + session | 14 | 990 | 1232 |
+| open | 21 | 1025 | 1436 |
+| join | 21 | 1048 | 39116 |
+| commit | 21 | 1017 | 38822 |
+| commit + delegate | 18 | 1043 | 1561 |
+| delegation visible on ER | 18 | 234 | 886 |
+| reveal (ER) | 27 | 1051 | 1679 |
+| start + crank (ER) | 12 | 1053 | 1244 |
+| start (forfeit) | 6 | 1593 | 1650 |
+| finish (commit+undelegate) | 18 | 1052 | 1659 |
+| undelegation back on Solana | 18 | 1603 | 1912 |
+| settle | 18 | 1060 | 1212 |
+| mint trophy | 15 | 1074 | 39851 |
+| VRF request (ER) | 36 | 1155 | 1700 |
+| VRF request -> callback applied | 36 | 1446 | 1939 |
+| cancel draft | 3 | 1010 | 1194 |
+| rebalance (ER) | 46 | 1130 | 1847 |
 
 ## Checks
 
-- ✅ [#9 no-show] delegated: base owner is the delegation program
-- ✅ [#10 regular 20] delegated: base owner is the delegation program
-- ✅ [#11 regular 1] commit with a session token for another player — refused with Unauthorized
-- ✅ [#10 regular 20] live with oracle reference prices
-- ✅ [#11 regular 1] commit by a stranger without a session token — refused with Unauthorized
-- ✅ [#12 forfeit] delegated: base owner is the delegation program
-- ✅ [#11 regular 1] delegate before both commitments — refused with NotCommitted
-- ✅ [#13 mirror] delegated: base owner is the delegation program
-- ✅ [#14 regular 5] delegated: base owner is the delegation program
-- ✅ [#11 regular 1] delegated: base owner is the delegation program
-- ✅ [#15 abandoned] cancel before the draft deadline — refused with DraftNotOver
-- ✅ [#11 regular 1] reveal with a wrong salt — refused with BadReveal
-- ✅ [#13 mirror] live with oracle reference prices
-- ✅ [#11 regular 1] reveal a different basket — refused with BadReveal
-- ✅ [#14 regular 5] live with oracle reference prices
-- ✅ [#11 regular 1] reveal signed by a stranger on the ER — refused with Unauthorized
-- ✅ [#11 regular 1] start before both reveals — refused with NotRevealed
-- ✅ [#11 regular 1] live with oracle reference prices
-- ✅ [#11 regular 1] mutation requested before its second — refused with TooEarly
-- ✅ [#11 regular 1] rebalance changing the asset set — refused with BadBasket
-- ✅ [#11 regular 1] forged VRF callback — refused with ConstraintAddress
-- ✅ [#11 regular 1] finish before the end — refused with BadStatus
-- ✅ [#11 regular 1] settle while the duel is on the ER — refused with AccountOwnedByWrongProgram
-- ✅ [#12 forfeit] forfeit resolves: winner 0 — status 3 winner 0
-- ✅ [#12 forfeit] committed state on Solana equals the ER state
-- ✅ [#12 forfeit] payout (winner 0) — deltas 4.5,-5 expected 4.5,-5
-- ✅ [#12 forfeit] profile 0 (win): points, record, history — 0 -> 20 pts, streak 1
-- ✅ [#12 forfeit] profile 1 (loss): points, record, history — 0 -> 0 pts, streak -1
-- ✅ [#10 regular 20] VRF mutation 0 applied
-- ✅ [#13 mirror] VRF mutation 0 applied
-- ✅ [#14 regular 5] VRF mutation 0 applied
-- ✅ [#11 regular 1] VRF mutation 0 applied
-- ✅ [#11 regular 1] same mutation requested twice — refused with AlreadyRequested
-- ✅ [#15 abandoned] abandoned draft refunds both stakes — 100,100 -> 100,100
-- ✅ [#15 abandoned] cancelled duel status
-- ✅ [#9 no-show] forfeit resolves: winner 2 — status 3 winner 2
-- ✅ [#9 no-show] committed state on Solana equals the ER state
-- ✅ [#9 no-show] payout (winner 2) — deltas 0,0 expected 0,0
-- ✅ [#9 no-show] profile 0 (draw): points, record, history — 0 -> 0 pts, streak 0
-- ✅ [#9 no-show] profile 1 (draw): points, record, history — 0 -> 0 pts, streak 0
-- ✅ [#10 regular 20] VRF mutation 1 applied
-- ✅ [#13 mirror] VRF mutation 1 applied
-- ✅ [#14 regular 5] VRF mutation 1 applied
-- ✅ [#11 regular 1] VRF mutation 1 applied
-- ✅ [#10 regular 20] third rebalance — refused with NoRebalanceLeft
-- ✅ [#13 mirror] third rebalance — refused with NoRebalanceLeft
-- ✅ [#14 regular 5] third rebalance — refused with NoRebalanceLeft
-- ✅ [#11 regular 1] third rebalance — refused with NoRebalanceLeft
-- ✅ [#10 regular 20] VRF mutation 2 applied
-- ✅ [#13 mirror] VRF mutation 2 applied
-- ✅ [#14 regular 5] VRF mutation 2 applied
-- ✅ [#11 regular 1] VRF mutation 2 applied
-- ✅ [#10 regular 20] finished on time by the crank — ticks 301, status 3
-- ✅ [#10 regular 20] crank ticked ~1/s — 301 ticks in 300s
-- ✅ [#10 regular 20] three different mutation kinds — PYTH weight x2 | PYTH frozen for 30s | Swap: WIF <-> PYTH
-- ✅ [#10 regular 20] winner matches scores — 1.8237% vs 2.0403%
-- ✅ [#10 regular 20] committed state on Solana equals the ER state
-- ✅ [#10 regular 20] payout (winner 1) — deltas -20,18 expected -20,18
-- ✅ [#10 regular 20] profile 0 (loss): points, record, history — 0 -> 0 pts, streak -3
-- ✅ [#10 regular 20] profile 1 (win): points, record, history — 20 -> 40 pts, streak 2
-- ✅ [#13 mirror] finished on time by the crank — ticks 301, status 3
-- ✅ [#13 mirror] crank ticked ~1/s — 301 ticks in 300s
-- ✅ [#13 mirror] three different mutation kinds — JUP weight x2 | Swap: JUP <-> JTO | BONK frozen for 30s
-- ✅ [#13 mirror] winner matches scores — 1.6511% vs 1.0505%
-- ✅ [#14 regular 5] finished on time by the crank — ticks 301, status 3
-- ✅ [#14 regular 5] crank ticked ~1/s — 301 ticks in 300s
-- ✅ [#14 regular 5] three different mutation kinds — BONK frozen for 30s | JTO weight x2 | Swap: WIF <-> BONK
-- ✅ [#14 regular 5] winner matches scores — 0.8449% vs 0.9619%
-- ✅ [#13 mirror] committed state on Solana equals the ER state
-- ✅ [#14 regular 5] committed state on Solana equals the ER state
-- ✅ [#13 mirror] payout (winner 0) — deltas 0.9,-1 expected 0.9,-1
-- ✅ [#13 mirror] profile 0 (win): points, record, history — 0 -> 20 pts, streak 1
-- ✅ [#13 mirror] profile 1 (loss): points, record, history — 20 -> 4 pts, streak -1
-- ✅ [#14 regular 5] payout (winner 1) — deltas -5,4.5 expected -5,4.5
-- ✅ [#14 regular 5] profile 0 (loss): points, record, history — 20 -> 4 pts, streak -1
-- ✅ [#14 regular 5] profile 1 (win): points, record, history — 0 -> 20 pts, streak 1
-- ✅ [#11 regular 1] finished on time by the crank — ticks 301, status 3
-- ✅ [#11 regular 1] crank ticked ~1/s — 301 ticks in 300s
-- ✅ [#11 regular 1] three different mutation kinds — SOL frozen for 30s | BONK weight x2 | Swap fizzles: both hold JUP
-- ✅ [#11 regular 1] winner matches scores — 1.1262% vs 1.2780%
-- ✅ [#11 regular 1] committed state on Solana equals the ER state
-- ✅ [#11 regular 1] settle paying the winner's share to a wrong account — refused with BadTokenAccount
-- ✅ [#11 regular 1] settle twice — refused with BadStatus
-- ✅ [#11 regular 1] payout (winner 1) — deltas -1,0.9 expected -1,0.9
-- ✅ [#11 regular 1] profile 0 (loss): points, record, history — 0 -> 0 pts, streak -2
-- ✅ [#11 regular 1] profile 1 (win): points, record, history — 40 -> 60 pts, streak 3
-- ✅ [#16 forfeit] delegated: base owner is the delegation program
-- ✅ [#17 regular 1] commit with a session token for another player — refused with Unauthorized
-- ✅ [#17 regular 1] commit by a stranger without a session token — refused with Unauthorized
-- ✅ [#18 abandoned] cancel before the draft deadline — refused with DraftNotOver
-- ✅ [#17 regular 1] delegate before both commitments — refused with NotCommitted
-- ✅ [#17 regular 1] delegated: base owner is the delegation program
-- ✅ [#19 mirror] delegated: base owner is the delegation program
-- ✅ [#17 regular 1] reveal with a wrong salt — refused with BadReveal
-- ✅ [#20 no-show] delegated: base owner is the delegation program
-- ✅ [#17 regular 1] reveal a different basket — refused with BadReveal
-- ✅ [#21 regular 5] delegated: base owner is the delegation program
-- ✅ [#19 mirror] live with oracle reference prices
-- ✅ [#17 regular 1] reveal signed by a stranger on the ER — refused with Unauthorized
-- ✅ [#17 regular 1] start before both reveals — refused with NotRevealed
-- ✅ [#22 regular 20] delegated: base owner is the delegation program
-- ✅ [#21 regular 5] live with oracle reference prices
-- ✅ [#17 regular 1] live with oracle reference prices
-- ✅ [#22 regular 20] live with oracle reference prices
-- ✅ [#17 regular 1] mutation requested before its second — refused with TooEarly
-- ✅ [#17 regular 1] rebalance changing the asset set — refused with BadBasket
-- ✅ [#17 regular 1] forged VRF callback — refused with ConstraintAddress
-- ✅ [#17 regular 1] finish before the end — refused with BadStatus
-- ✅ [#17 regular 1] settle while the duel is on the ER — refused with AccountOwnedByWrongProgram
-- ✅ [#16 forfeit] forfeit resolves: winner 0 — status 3 winner 0
-- ✅ [#16 forfeit] committed state on Solana equals the ER state
-- ✅ [#16 forfeit] payout (winner 0) — deltas 4.5,-5 expected 4.5,-5
-- ✅ [#16 forfeit] profile 0 (win): points, record, history — 0 -> 20 pts, streak 1
-- ✅ [#16 forfeit] profile 1 (loss): points, record, history — 0 -> 0 pts, streak -1
-- ✅ [#19 mirror] VRF mutation 0 applied
-- ✅ [#21 regular 5] VRF mutation 0 applied
-- ✅ [#17 regular 1] VRF mutation 0 applied
-- ✅ [#17 regular 1] same mutation requested twice — refused with AlreadyRequested
-- ✅ [#22 regular 20] VRF mutation 0 applied
-- ✅ [#18 abandoned] abandoned draft refunds both stakes — 106.3,99.5 -> 106.3,99.5
-- ✅ [#18 abandoned] cancelled duel status
-- ✅ [#20 no-show] forfeit resolves: winner 2 — status 3 winner 2
-- ✅ [#20 no-show] committed state on Solana equals the ER state
-- ✅ [#20 no-show] payout (winner 2) — deltas 0,0 expected 0,0
-- ✅ [#20 no-show] profile 0 (draw): points, record, history — 0 -> 0 pts, streak 0
-- ✅ [#20 no-show] profile 1 (draw): points, record, history — 0 -> 0 pts, streak -2
-- ✅ [#19 mirror] VRF mutation 1 applied
-- ✅ [#21 regular 5] VRF mutation 1 applied
-- ✅ [#17 regular 1] VRF mutation 1 applied
-- ✅ [#22 regular 20] VRF mutation 1 applied
-- ✅ [#19 mirror] third rebalance — refused with NoRebalanceLeft
-- ✅ [#21 regular 5] third rebalance — refused with NoRebalanceLeft
-- ✅ [#17 regular 1] third rebalance — refused with NoRebalanceLeft
-- ✅ [#19 mirror] VRF mutation 2 applied
-- ✅ [#21 regular 5] VRF mutation 2 applied
-- ✅ [#17 regular 1] VRF mutation 2 applied
-- ✅ [#22 regular 20] VRF mutation 2 applied
-- ✅ [#19 mirror] finished on time by the crank — ticks 301, status 3
-- ✅ [#19 mirror] crank ticked ~1/s — 301 ticks in 300s
-- ✅ [#19 mirror] three different mutation kinds — WIF frozen for 30s | PYTH weight x2 | Swap: WIF <-> BONK
-- ✅ [#19 mirror] winner matches scores — 0.6928% vs 0.6133%
-- ✅ [#19 mirror] committed state on Solana equals the ER state
-- ✅ [#21 regular 5] finished on time by the crank — ticks 301, status 3
-- ✅ [#21 regular 5] crank ticked ~1/s — 301 ticks in 300s
-- ✅ [#21 regular 5] three different mutation kinds — BONK frozen for 30s | SOL weight x2 | Swap: SOL <-> PYTH
-- ✅ [#21 regular 5] winner matches scores — 0.2465% vs 0.3887%
-- ✅ [#19 mirror] payout (winner 0) — deltas 0.9,-1 expected 0.9,-1
-- ✅ [#19 mirror] profile 0 (win): points, record, history — 0 -> 20 pts, streak 1
-- ✅ [#19 mirror] profile 1 (loss): points, record, history — 0 -> 0 pts, streak -1
-- ✅ [#22 regular 20] finished on time by the crank — ticks 301, status 3
-- ✅ [#22 regular 20] crank ticked ~1/s — 301 ticks in 300s
-- ✅ [#22 regular 20] three different mutation kinds — PYTH frozen for 30s | JUP weight x2 | Swap: JUP <-> SOL
-- ✅ [#22 regular 20] winner matches scores — 0.2126% vs 0.2107%
-- ✅ [#21 regular 5] committed state on Solana equals the ER state
-- ✅ [#17 regular 1] finished on time by the crank — ticks 301, status 3
-- ✅ [#17 regular 1] crank ticked ~1/s — 301 ticks in 300s
-- ✅ [#17 regular 1] three different mutation kinds — JUP weight x2 | SOL frozen for 30s | Swap: WIF <-> SOL
-- ✅ [#17 regular 1] winner matches scores — 0.1596% vs 0.1195%
-- ✅ [#21 regular 5] payout (winner 1) — deltas -5,4.5 expected -5,4.5
-- ✅ [#21 regular 5] profile 0 (loss): points, record, history — 40 -> 24 pts, streak -1
-- ✅ [#21 regular 5] profile 1 (win): points, record, history — 20 -> 40 pts, streak 2
-- ✅ [#22 regular 20] committed state on Solana equals the ER state
-- ✅ [#17 regular 1] committed state on Solana equals the ER state
-- ✅ [#22 regular 20] payout (winner 0) — deltas 18,-20 expected 18,-20
-- ✅ [#22 regular 20] profile 0 (win): points, record, history — 4 -> 24 pts, streak 1
-- ✅ [#22 regular 20] profile 1 (loss): points, record, history — 20 -> 4 pts, streak -1
-- ✅ [#17 regular 1] settle paying the winner's share to a wrong account — refused with BadTokenAccount
-- ✅ [#17 regular 1] settle twice — refused with BadStatus
-- ✅ [#17 regular 1] payout (winner 0) — deltas 0.9,-1 expected 0.9,-1
-- ✅ [#17 regular 1] profile 0 (win): points, record, history — 20 -> 40 pts, streak 2
-- ✅ [#17 regular 1] profile 1 (loss): points, record, history — 0 -> 0 pts, streak -4
-- ✅ [#24 regular 1] commit with a session token for another player — refused with Unauthorized
-- ✅ [#23 regular 5] delegated: base owner is the delegation program
-- ✅ [#24 regular 1] commit by a stranger without a session token — refused with Unauthorized
-- ✅ [#24 regular 1] delegate before both commitments — refused with NotCommitted
-- ✅ [#25 regular 20] delegated: base owner is the delegation program
-- ✅ [#26 forfeit] delegated: base owner is the delegation program
-- ✅ [#23 regular 5] live with oracle reference prices
-- ✅ [#24 regular 1] delegated: base owner is the delegation program
-- ✅ [#27 no-show] delegated: base owner is the delegation program
-- ✅ [#28 abandoned] cancel before the draft deadline — refused with DraftNotOver
-- ✅ [#25 regular 20] live with oracle reference prices
-- ✅ [#24 regular 1] reveal with a wrong salt — refused with BadReveal
-- ✅ [#24 regular 1] reveal a different basket — refused with BadReveal
-- ✅ [#29 mirror] delegated: base owner is the delegation program
-- ✅ [#24 regular 1] reveal signed by a stranger on the ER — refused with Unauthorized
-- ✅ [#24 regular 1] start before both reveals — refused with NotRevealed
-- ✅ [#29 mirror] live with oracle reference prices
-- ✅ [#24 regular 1] live with oracle reference prices
-- ✅ [#24 regular 1] mutation requested before its second — refused with TooEarly
-- ✅ [#24 regular 1] rebalance changing the asset set — refused with BadBasket
-- ✅ [#24 regular 1] forged VRF callback — refused with ConstraintAddress
-- ✅ [#24 regular 1] finish before the end — refused with BadStatus
-- ✅ [#24 regular 1] settle while the duel is on the ER — refused with AccountOwnedByWrongProgram
-- ✅ [#26 forfeit] forfeit resolves: winner 0 — status 3 winner 0
-- ✅ [#26 forfeit] committed state on Solana equals the ER state
-- ✅ [#26 forfeit] payout (winner 0) — deltas 4.5,-5 expected 4.5,-5
-- ✅ [#26 forfeit] profile 0 (win): points, record, history — 0 -> 20 pts, streak 1
-- ✅ [#26 forfeit] profile 1 (loss): points, record, history — 60 -> 44 pts, streak -1
-- ✅ [#23 regular 5] VRF mutation 0 applied
-- ✅ [#25 regular 20] VRF mutation 0 applied
-- ✅ [#29 mirror] VRF mutation 0 applied
-- ✅ [#24 regular 1] VRF mutation 0 applied
-- ✅ [#24 regular 1] same mutation requested twice — refused with AlreadyRequested
-- ✅ [#28 abandoned] abandoned draft refunds both stakes — 54,131 -> 54,131
-- ✅ [#28 abandoned] cancelled duel status
-- ✅ [#27 no-show] forfeit resolves: winner 2 — status 3 winner 2
-- ✅ [#27 no-show] committed state on Solana equals the ER state
-- ✅ [#27 no-show] payout (winner 2) — deltas 0,0 expected 0,0
-- ✅ [#27 no-show] profile 0 (draw): points, record, history — 4 -> 4 pts, streak -1
-- ✅ [#27 no-show] profile 1 (draw): points, record, history — 40 -> 40 pts, streak 2
-- ✅ [#23 regular 5] VRF mutation 1 applied
-- ✅ [#25 regular 20] VRF mutation 1 applied
-- ✅ [#29 mirror] VRF mutation 1 applied
-- ✅ [#24 regular 1] VRF mutation 1 applied
-- ✅ [#23 regular 5] third rebalance — refused with NoRebalanceLeft
-- ✅ [#25 regular 20] third rebalance — refused with NoRebalanceLeft
-- ✅ [#29 mirror] third rebalance — refused with NoRebalanceLeft
-- ✅ [#24 regular 1] third rebalance — refused with NoRebalanceLeft
-- ✅ [#23 regular 5] VRF mutation 2 applied
-- ✅ [#25 regular 20] VRF mutation 2 applied
-- ✅ [#29 mirror] VRF mutation 2 applied
-- ✅ [#24 regular 1] VRF mutation 2 applied
-- ✅ [#23 regular 5] finished on time by the crank — ticks 301, status 3
-- ✅ [#23 regular 5] crank ticked ~1/s — 301 ticks in 300s
-- ✅ [#23 regular 5] three different mutation kinds — SOL weight x2 | Swap fizzles: both hold PYTH | JUP frozen for 30s
-- ✅ [#23 regular 5] winner matches scores — 0.9578% vs 0.6289%
-- ✅ [#25 regular 20] finished on time by the crank — ticks 301, status 3
-- ✅ [#25 regular 20] crank ticked ~1/s — 301 ticks in 300s
-- ✅ [#25 regular 20] three different mutation kinds — PYTH frozen for 30s | Swap fizzles: both hold JUP | WIF weight x2
-- ✅ [#25 regular 20] winner matches scores — 0.9891% vs 0.5040%
-- ✅ [#23 regular 5] committed state on Solana equals the ER state
-- ✅ [#23 regular 5] payout (winner 0) — deltas 4.5,-5 expected 4.5,-5
-- ✅ [#23 regular 5] profile 0 (win): points, record, history — 4 -> 24 pts, streak 1
-- ✅ [#23 regular 5] profile 1 (loss): points, record, history — 20 -> 4 pts, streak -1
-- ✅ [#25 regular 20] committed state on Solana equals the ER state
-- ✅ [#25 regular 20] payout (winner 0) — deltas 18,-20 expected 18,-20
-- ✅ [#25 regular 20] profile 0 (win): points, record, history — 0 -> 20 pts, streak 1
-- ✅ [#25 regular 20] profile 1 (loss): points, record, history — 20 -> 4 pts, streak -1
-- ✅ [#29 mirror] finished on time by the crank — ticks 301, status 3
-- ✅ [#29 mirror] crank ticked ~1/s — 301 ticks in 300s
-- ✅ [#29 mirror] three different mutation kinds — BONK weight x2 | SOL frozen for 30s | Swap: SOL <-> PYTH
-- ✅ [#29 mirror] winner matches scores — 0.8994% vs 0.9807%
-- ✅ [#24 regular 1] finished on time by the crank — ticks 301, status 3
-- ✅ [#24 regular 1] crank ticked ~1/s — 301 ticks in 300s
-- ✅ [#24 regular 1] three different mutation kinds — JUP weight x2 | SOL frozen for 30s | Swap fizzles: both hold JUP
-- ✅ [#24 regular 1] winner matches scores — 0.7386% vs 0.8294%
-- ✅ [#29 mirror] committed state on Solana equals the ER state
-- ✅ [#24 regular 1] committed state on Solana equals the ER state
-- ✅ [#29 mirror] payout (winner 1) — deltas -1,0.9 expected -1,0.9
-- ✅ [#29 mirror] profile 0 (loss): points, record, history — 0 -> 0 pts, streak -2
-- ✅ [#29 mirror] profile 1 (win): points, record, history — 0 -> 20 pts, streak 1
-- ✅ [#24 regular 1] settle paying the winner's share to a wrong account — refused with BadTokenAccount
-- ✅ [#24 regular 1] settle twice — refused with BadStatus
-- ✅ [#24 regular 1] payout (winner 1) — deltas -1,0.9 expected -1,0.9
-- ✅ [#24 regular 1] profile 0 (loss): points, record, history — 40 -> 24 pts, streak -1
-- ✅ [#24 regular 1] profile 1 (win): points, record, history — 24 -> 44 pts, streak 2
+- ✅ [#80 abandoned] cancel before the draft deadline — refused with DraftNotOver
+- ✅ [#82 regular 1] commit with a session token for another player — refused with Unauthorized
+- ✅ [#81 regular 5] delegated: base owner is the delegation program
+- ✅ [#82 regular 1] commit by a stranger without a session token — refused with Unauthorized
+- ✅ [#82 regular 1] delegate before both commitments — refused with NotCommitted
+- ✅ [#83 regular 20] delegated: base owner is the delegation program
+- ✅ [#81 regular 5] live with oracle reference prices
+- ✅ [#84 forfeit] delegated: base owner is the delegation program
+- ✅ [#82 regular 1] delegated: base owner is the delegation program
+- ✅ [#82 regular 1] reveal with a wrong salt — refused with BadReveal
+- ✅ [#83 regular 20] live with oracle reference prices
+- ✅ [#85 mirror] delegated: base owner is the delegation program
+- ✅ [#82 regular 1] reveal a different basket — refused with BadReveal
+- ✅ [#82 regular 1] reveal signed by a stranger on the ER — refused with Unauthorized
+- ✅ [#82 regular 1] start before both reveals — refused with NotRevealed
+- ✅ [#85 mirror] live with oracle reference prices
+- ✅ [#86 no-show] delegated: base owner is the delegation program
+- ✅ [#82 regular 1] live with oracle reference prices
+- ✅ [#82 regular 1] mutation requested before its second — refused with TooEarly
+- ✅ [#82 regular 1] rebalance changing the asset set — refused with BadBasket
+- ✅ [#82 regular 1] forged VRF callback — refused with ConstraintAddress
+- ✅ [#82 regular 1] finish before the end — refused with BadStatus
+- ✅ [#82 regular 1] settle while the duel is on the ER — refused with AccountOwnedByWrongProgram
+- ✅ [#84 forfeit] forfeit resolves: winner 0 — status 3 winner 0
+- ✅ [#84 forfeit] committed state on Solana equals the ER state
+- ✅ [#84 forfeit] loser minting the trophy — refused with NotTheWinner
+- ✅ [#84 forfeit] trophy records the winning basket
+- ✅ [#84 forfeit] payout (winner 0) — deltas 4.5,-5 expected 4.5,-5
+- ✅ [#84 forfeit] profile 0 (win): points, record, history — 108 -> 128 pts, streak 2
+- ✅ [#84 forfeit] profile 1 (loss): points, record, history — 0 -> 0 pts, streak -5
+- ✅ [#81 regular 5] VRF mutation 0 applied
+- ✅ [#83 regular 20] VRF mutation 0 applied
+- ✅ [#85 mirror] VRF mutation 0 applied
+- ✅ [#82 regular 1] VRF mutation 0 applied
+- ✅ [#82 regular 1] same mutation requested twice — refused with AlreadyRequested
+- ✅ [#80 abandoned] abandoned draft refunds both stakes — 85.8,98.9 -> 85.8,98.9
+- ✅ [#80 abandoned] cancelled duel status
+- ✅ [#86 no-show] forfeit resolves: winner 2 — status 3 winner 2
+- ✅ [#86 no-show] committed state on Solana equals the ER state
+- ✅ [#86 no-show] trophy for a draw — refused with NotTheWinner
+- ✅ [#86 no-show] payout (winner 2) — deltas 0,0 expected 0,0
+- ✅ [#86 no-show] profile 0 (draw): points, record, history — 40 -> 40 pts, streak 2
+- ✅ [#86 no-show] profile 1 (draw): points, record, history — 48 -> 48 pts, streak -1
+- ✅ [#81 regular 5] VRF mutation 1 applied
+- ✅ [#83 regular 20] VRF mutation 1 applied
+- ✅ [#85 mirror] VRF mutation 1 applied
+- ✅ [#82 regular 1] VRF mutation 1 applied
+- ✅ [#81 regular 5] third rebalance — refused with NoRebalanceLeft
+- ✅ [#83 regular 20] third rebalance — refused with NoRebalanceLeft
+- ✅ [#85 mirror] third rebalance — refused with NoRebalanceLeft
+- ✅ [#82 regular 1] third rebalance — refused with NoRebalanceLeft
+- ✅ [#81 regular 5] VRF mutation 2 applied
+- ✅ [#83 regular 20] VRF mutation 2 applied
+- ✅ [#85 mirror] VRF mutation 2 applied
+- ✅ [#82 regular 1] VRF mutation 2 applied
+- ✅ [#81 regular 5] finished on time by the crank — ticks 301, status 3
+- ✅ [#81 regular 5] crank ticked ~1/s — 301 ticks in 300s
+- ✅ [#81 regular 5] three different mutation kinds — Swap: BONK <-> PYTH | SOL frozen for 30s | SOL weight x2
+- ✅ [#81 regular 5] winner matches scores — 0.2804% vs 0.4224%
+- ✅ [#83 regular 20] finished on time by the crank — ticks 301, status 3
+- ✅ [#83 regular 20] crank ticked ~1/s — 301 ticks in 300s
+- ✅ [#83 regular 20] three different mutation kinds — PYTH weight x2 | Swap: SOL <-> JUP | PYTH frozen for 30s
+- ✅ [#83 regular 20] winner matches scores — 0.3638% vs 0.1980%
+- ✅ [#81 regular 5] committed state on Solana equals the ER state
+- ✅ [#83 regular 20] committed state on Solana equals the ER state
+- ✅ [#81 regular 5] loser minting the trophy — refused with NotTheWinner
+- ✅ [#83 regular 20] loser minting the trophy — refused with NotTheWinner
+- ✅ [#85 mirror] finished on time by the crank — ticks 301, status 3
+- ✅ [#85 mirror] crank ticked ~1/s — 301 ticks in 300s
+- ✅ [#85 mirror] three different mutation kinds — SOL weight x2 | Swap: PYTH <-> SOL | PYTH frozen for 30s
+- ✅ [#85 mirror] winner matches scores — 0.3540% vs 0.2926%
+- ✅ [#81 regular 5] trophy records the winning basket
+- ✅ [#81 regular 5] payout (winner 1) — deltas -5,4.5 expected -5,4.5
+- ✅ [#81 regular 5] profile 0 (loss): points, record, history — 0 -> 0 pts, streak -4
+- ✅ [#81 regular 5] profile 1 (win): points, record, history — 64 -> 84 pts, streak 1
+- ✅ [#83 regular 20] trophy records the winning basket
+- ✅ [#83 regular 20] payout (winner 0) — deltas 18,-20 expected 18,-20
+- ✅ [#83 regular 20] profile 0 (win): points, record, history — 20 -> 40 pts, streak 2
+- ✅ [#83 regular 20] profile 1 (loss): points, record, history — 104 -> 88 pts, streak -1
+- ✅ [#85 mirror] committed state on Solana equals the ER state
+- ✅ [#82 regular 1] finished on time by the crank — ticks 301, status 3
+- ✅ [#82 regular 1] crank ticked ~1/s — 301 ticks in 300s
+- ✅ [#82 regular 1] three different mutation kinds — JTO weight x2 | Swap fizzles: both hold JUP | PYTH frozen for 30s
+- ✅ [#82 regular 1] winner matches scores — 0.3030% vs 0.2595%
+- ✅ [#85 mirror] loser minting the trophy — refused with NotTheWinner
+- ✅ [#82 regular 1] committed state on Solana equals the ER state
+- ✅ [#85 mirror] trophy records the winning basket
+- ✅ [#85 mirror] payout (winner 0) — deltas 0.9,-1 expected 0.9,-1
+- ✅ [#85 mirror] profile 0 (win): points, record, history — 0 -> 20 pts, streak 1
+- ✅ [#85 mirror] profile 1 (loss): points, record, history — 148 -> 132 pts, streak -1
+- ✅ [#82 regular 1] settle paying the winner's share to a wrong account — refused with BadTokenAccount
+- ✅ [#82 regular 1] settle twice — refused with BadStatus
+- ✅ [#82 regular 1] loser minting the trophy — refused with NotTheWinner
+- ✅ [#82 regular 1] trophy records the winning basket
+- ✅ [#82 regular 1] trophy minted twice — refused with already in use
+- ✅ [#82 regular 1] payout (winner 0) — deltas 0.9,-1 expected 0.9,-1
+- ✅ [#82 regular 1] profile 0 (win): points, record, history — 48 -> 68 pts, streak 2
+- ✅ [#82 regular 1] profile 1 (loss): points, record, history — 36 -> 20 pts, streak -2
+- ✅ [#87 regular 1] commit with a session token for another player — refused with Unauthorized
+- ✅ [#87 regular 1] commit by a stranger without a session token — refused with Unauthorized
+- ✅ [#87 regular 1] delegate before both commitments — refused with NotCommitted
+- ✅ [#88 regular 5] delegated: base owner is the delegation program
+- ✅ [#89 no-show] delegated: base owner is the delegation program
+- ✅ [#88 regular 5] live with oracle reference prices
+- ✅ [#91 regular 20] delegated: base owner is the delegation program
+- ✅ [#91 regular 20] live with oracle reference prices
+- ✅ [#87 regular 1] delegated: base owner is the delegation program
+- ✅ [#90 mirror] delegated: base owner is the delegation program
+- ✅ [#87 regular 1] reveal with a wrong salt — refused with BadReveal
+- ✅ [#92 abandoned] cancel before the draft deadline — refused with DraftNotOver
+- ✅ [#87 regular 1] reveal a different basket — refused with BadReveal
+- ✅ [#90 mirror] live with oracle reference prices
+- ✅ [#87 regular 1] reveal signed by a stranger on the ER — refused with Unauthorized
+- ✅ [#87 regular 1] start before both reveals — refused with NotRevealed
+- ✅ [#93 forfeit] delegated: base owner is the delegation program
+- ✅ [#87 regular 1] live with oracle reference prices
+- ✅ [#87 regular 1] mutation requested before its second — refused with TooEarly
+- ✅ [#87 regular 1] rebalance changing the asset set — refused with BadBasket
+- ✅ [#87 regular 1] forged VRF callback — refused with ConstraintAddress
+- ✅ [#87 regular 1] finish before the end — refused with BadStatus
+- ✅ [#87 regular 1] settle while the duel is on the ER — refused with AccountOwnedByWrongProgram
+- ✅ [#88 regular 5] VRF mutation 0 applied
+- ✅ [#91 regular 20] VRF mutation 0 applied
+- ✅ [#93 forfeit] forfeit resolves: winner 0 — status 3 winner 0
+- ✅ [#93 forfeit] committed state on Solana equals the ER state
+- ✅ [#93 forfeit] loser minting the trophy — refused with NotTheWinner
+- ✅ [#93 forfeit] trophy records the winning basket
+- ✅ [#93 forfeit] payout (winner 0) — deltas 4.5,-5 expected 4.5,-5
+- ✅ [#93 forfeit] profile 0 (win): points, record, history — 48 -> 68 pts, streak 1
+- ✅ [#93 forfeit] profile 1 (loss): points, record, history — 24 -> 8 pts, streak -1
+- ✅ [#90 mirror] VRF mutation 0 applied
+- ✅ [#87 regular 1] VRF mutation 0 applied
+- ✅ [#87 regular 1] same mutation requested twice — refused with AlreadyRequested
+- ✅ [#92 abandoned] abandoned draft refunds both stakes — 91.1,84.5 -> 91.1,84.5
+- ✅ [#92 abandoned] cancelled duel status
+- ✅ [#89 no-show] forfeit resolves: winner 2 — status 3 winner 2
+- ✅ [#89 no-show] committed state on Solana equals the ER state
+- ✅ [#89 no-show] trophy for a draw — refused with NotTheWinner
+- ✅ [#89 no-show] payout (winner 2) — deltas 0,0 expected 0,0
+- ✅ [#89 no-show] profile 0 (draw): points, record, history — 0 -> 0 pts, streak -2
+- ✅ [#89 no-show] profile 1 (draw): points, record, history — 68 -> 68 pts, streak 2
+- ✅ [#88 regular 5] VRF mutation 1 applied
+- ✅ [#91 regular 20] VRF mutation 1 applied
+- ✅ [#90 mirror] VRF mutation 1 applied
+- ✅ [#87 regular 1] VRF mutation 1 applied
+- ✅ [#88 regular 5] third rebalance — refused with NoRebalanceLeft
+- ✅ [#91 regular 20] third rebalance — refused with NoRebalanceLeft
+- ✅ [#88 regular 5] VRF mutation 2 applied
+- ✅ [#90 mirror] third rebalance — refused with NoRebalanceLeft
+- ✅ [#91 regular 20] VRF mutation 2 applied
+- ✅ [#87 regular 1] third rebalance — refused with NoRebalanceLeft
+- ✅ [#90 mirror] VRF mutation 2 applied
+- ✅ [#87 regular 1] VRF mutation 2 applied
+- ✅ [#88 regular 5] finished on time by the crank — ticks 301, status 3
+- ✅ [#88 regular 5] crank ticked ~1/s — 301 ticks in 300s
+- ✅ [#88 regular 5] three different mutation kinds — Swap: JUP <-> WIF | SOL weight x2 | PYTH frozen for 30s
+- ✅ [#88 regular 5] winner matches scores — -0.8426% vs -0.6938%
+- ✅ [#88 regular 5] committed state on Solana equals the ER state
+- ✅ [#88 regular 5] loser minting the trophy — refused with NotTheWinner
+- ✅ [#91 regular 20] finished on time by the crank — ticks 300, status 3
+- ✅ [#91 regular 20] crank ticked ~1/s — 300 ticks in 300s
+- ✅ [#91 regular 20] three different mutation kinds — JTO weight x2 | Swap: PYTH <-> BONK | BONK frozen for 30s
+- ✅ [#91 regular 20] winner matches scores — -1.0264% vs -0.4771%
+- ✅ [#88 regular 5] trophy records the winning basket
+- ✅ [#88 regular 5] payout (winner 1) — deltas -5,4.5 expected -5,4.5
+- ✅ [#88 regular 5] profile 0 (loss): points, record, history — 88 -> 72 pts, streak -2
+- ✅ [#88 regular 5] profile 1 (win): points, record, history — 20 -> 40 pts, streak 2
+- ✅ [#91 regular 20] committed state on Solana equals the ER state
+- ✅ [#91 regular 20] loser minting the trophy — refused with NotTheWinner
+- ✅ [#91 regular 20] trophy records the winning basket
+- ✅ [#91 regular 20] payout (winner 1) — deltas -20,18 expected -20,18
+- ✅ [#91 regular 20] profile 0 (loss): points, record, history — 132 -> 116 pts, streak -2
+- ✅ [#91 regular 20] profile 1 (win): points, record, history — 128 -> 148 pts, streak 3
+- ✅ [#90 mirror] finished on time by the crank — ticks 301, status 3
+- ✅ [#90 mirror] crank ticked ~1/s — 301 ticks in 300s
+- ✅ [#90 mirror] three different mutation kinds — BONK weight x2 | Swap: BONK <-> JTO | BONK frozen for 30s
+- ✅ [#90 mirror] winner matches scores — -0.6681% vs -0.6818%
+- ✅ [#90 mirror] committed state on Solana equals the ER state
+- ✅ [#90 mirror] loser minting the trophy — refused with NotTheWinner
+- ✅ [#87 regular 1] finished on time by the crank — ticks 301, status 3
+- ✅ [#87 regular 1] crank ticked ~1/s — 301 ticks in 300s
+- ✅ [#87 regular 1] three different mutation kinds — WIF frozen for 30s | Swap: JTO <-> PYTH | WIF weight x2
+- ✅ [#87 regular 1] winner matches scores — -0.3747% vs -0.4966%
+- ✅ [#87 regular 1] committed state on Solana equals the ER state
+- ✅ [#87 regular 1] settle paying the winner's share to a wrong account — refused with BadTokenAccount
+- ✅ [#87 regular 1] settle twice — refused with BadStatus
+- ✅ [#87 regular 1] loser minting the trophy — refused with NotTheWinner
+- ✅ [#87 regular 1] trophy records the winning basket
+- ✅ [#87 regular 1] trophy minted twice — refused with already in use
+- ✅ [#87 regular 1] payout (winner 0) — deltas 0.9,-1 expected 0.9,-1
+- ✅ [#87 regular 1] profile 0 (win): points, record, history — 84 -> 104 pts, streak 2
+- ✅ [#87 regular 1] profile 1 (loss): points, record, history — 40 -> 24 pts, streak -1
+- ✅ [#90 mirror] trophy records the winning basket
+- ✅ [#90 mirror] payout (winner 0) — deltas 0.9,-1 expected 0.9,-1
+- ✅ [#90 mirror] profile 0 (win): points, record, history — 0 -> 20 pts, streak 1
+- ✅ [#90 mirror] profile 1 (loss): points, record, history — 40 -> 24 pts, streak -1
+- ✅ [#94 regular 1] commit with a session token for another player — refused with Unauthorized
+- ✅ [#94 regular 1] commit by a stranger without a session token — refused with Unauthorized
+- ✅ [#94 regular 1] delegate before both commitments — refused with NotCommitted
+- ✅ [#95 regular 20] delegated: base owner is the delegation program
+- ✅ [#96 forfeit] delegated: base owner is the delegation program
+- ✅ [#97 no-show] delegated: base owner is the delegation program
+- ✅ [#98 abandoned] cancel before the draft deadline — refused with DraftNotOver
+- ✅ [#94 regular 1] delegated: base owner is the delegation program
+- ✅ [#94 regular 1] reveal with a wrong salt — refused with BadReveal
+- ✅ [#95 regular 20] live with oracle reference prices
+- ✅ [#99 regular 5] delegated: base owner is the delegation program
+- ✅ [#94 regular 1] reveal a different basket — refused with BadReveal
+- ✅ [#94 regular 1] reveal signed by a stranger on the ER — refused with Unauthorized
+- ✅ [#100 mirror] delegated: base owner is the delegation program
+- ✅ [#94 regular 1] start before both reveals — refused with NotRevealed
+- ✅ [#99 regular 5] live with oracle reference prices
+- ✅ [#100 mirror] live with oracle reference prices
+- ✅ [#94 regular 1] live with oracle reference prices
+- ✅ [#94 regular 1] mutation requested before its second — refused with TooEarly
+- ✅ [#94 regular 1] rebalance changing the asset set — refused with BadBasket
+- ✅ [#94 regular 1] forged VRF callback — refused with ConstraintAddress
+- ✅ [#94 regular 1] finish before the end — refused with BadStatus
+- ✅ [#94 regular 1] settle while the duel is on the ER — refused with AccountOwnedByWrongProgram
+- ✅ [#96 forfeit] forfeit resolves: winner 0 — status 3 winner 0
+- ✅ [#96 forfeit] committed state on Solana equals the ER state
+- ✅ [#96 forfeit] loser minting the trophy — refused with NotTheWinner
+- ✅ [#96 forfeit] trophy records the winning basket
+- ✅ [#96 forfeit] payout (winner 0) — deltas 4.5,-5 expected 4.5,-5
+- ✅ [#96 forfeit] profile 0 (win): points, record, history — 68 -> 88 pts, streak 3
+- ✅ [#96 forfeit] profile 1 (loss): points, record, history — 20 -> 4 pts, streak -3
+- ✅ [#95 regular 20] VRF mutation 0 applied
+- ✅ [#99 regular 5] VRF mutation 0 applied
+- ✅ [#100 mirror] VRF mutation 0 applied
+- ✅ [#94 regular 1] VRF mutation 0 applied
+- ✅ [#94 regular 1] same mutation requested twice — refused with AlreadyRequested
+- ✅ [#98 abandoned] abandoned draft refunds both stakes — 130.9,151 -> 130.9,151
+- ✅ [#98 abandoned] cancelled duel status
+- ✅ [#97 no-show] forfeit resolves: winner 2 — status 3 winner 2
+- ✅ [#97 no-show] committed state on Solana equals the ER state
+- ✅ [#97 no-show] trophy for a draw — refused with NotTheWinner
+- ✅ [#97 no-show] payout (winner 2) — deltas 0,0 expected 0,0
+- ✅ [#97 no-show] profile 0 (draw): points, record, history — 0 -> 0 pts, streak -4
+- ✅ [#97 no-show] profile 1 (draw): points, record, history — 104 -> 104 pts, streak 2
+- ✅ [#95 regular 20] VRF mutation 1 applied
+- ✅ [#99 regular 5] VRF mutation 1 applied
+- ✅ [#100 mirror] VRF mutation 1 applied
+- ✅ [#94 regular 1] VRF mutation 1 applied
+- ✅ [#95 regular 20] third rebalance — refused with NoRebalanceLeft
+- ✅ [#99 regular 5] third rebalance — refused with NoRebalanceLeft
+- ✅ [#94 regular 1] third rebalance — refused with NoRebalanceLeft
+- ✅ [#95 regular 20] VRF mutation 2 applied
+- ✅ [#99 regular 5] VRF mutation 2 applied
+- ✅ [#94 regular 1] VRF mutation 2 applied
+- ✅ [#100 mirror] VRF mutation 2 applied
+- ✅ [#95 regular 20] finished on time by the crank — ticks 301, status 3
+- ✅ [#95 regular 20] crank ticked ~1/s — 301 ticks in 300s
+- ✅ [#95 regular 20] three different mutation kinds — SOL frozen for 30s | Swap: JTO <-> BONK | JUP weight x2
+- ✅ [#95 regular 20] winner matches scores — -0.0909% vs -0.1430%
+- ✅ [#95 regular 20] committed state on Solana equals the ER state
+- ✅ [#95 regular 20] loser minting the trophy — refused with NotTheWinner
+- ✅ [#95 regular 20] trophy records the winning basket
+- ✅ [#99 regular 5] finished on time by the crank — ticks 301, status 3
+- ✅ [#99 regular 5] crank ticked ~1/s — 301 ticks in 300s
+- ✅ [#99 regular 5] three different mutation kinds — SOL frozen for 30s | BONK weight x2 | Swap: BONK <-> SOL
+- ✅ [#99 regular 5] winner matches scores — 0.1296% vs -0.1868%
+- ✅ [#95 regular 20] payout (winner 0) — deltas 18,-20 expected 18,-20
+- ✅ [#95 regular 20] profile 0 (win): points, record, history — 24 -> 44 pts, streak 1
+- ✅ [#95 regular 20] profile 1 (loss): points, record, history — 68 -> 52 pts, streak -1
+- ✅ [#94 regular 1] finished on time by the crank — ticks 301, status 3
+- ✅ [#94 regular 1] crank ticked ~1/s — 301 ticks in 300s
+- ✅ [#94 regular 1] three different mutation kinds — JUP weight x2 | SOL frozen for 30s | Swap: SOL <-> JUP
+- ✅ [#94 regular 1] winner matches scores — -0.3601% vs 0.0866%
+- ✅ [#99 regular 5] committed state on Solana equals the ER state
+- ✅ [#100 mirror] finished on time by the crank — ticks 301, status 3
+- ✅ [#100 mirror] crank ticked ~1/s — 301 ticks in 300s
+- ✅ [#100 mirror] three different mutation kinds — BONK weight x2 | Swap fizzles: both hold BONK | WIF frozen for 30s
+- ✅ [#100 mirror] winner matches scores — 0.1369% vs 0.1362%
+- ✅ [#94 regular 1] committed state on Solana equals the ER state
+- ✅ [#99 regular 5] loser minting the trophy — refused with NotTheWinner
+- ✅ [#94 regular 1] settle paying the winner's share to a wrong account — refused with BadTokenAccount
+- ✅ [#100 mirror] committed state on Solana equals the ER state
+- ✅ [#99 regular 5] trophy records the winning basket
+- ✅ [#99 regular 5] payout (winner 0) — deltas 4.5,-5 expected 4.5,-5
+- ✅ [#99 regular 5] profile 0 (win): points, record, history — 148 -> 168 pts, streak 4
+- ✅ [#99 regular 5] profile 1 (loss): points, record, history — 20 -> 4 pts, streak -1
+- ✅ [#94 regular 1] settle twice — refused with BadStatus
+- ✅ [#100 mirror] loser minting the trophy — refused with NotTheWinner
+- ✅ [#94 regular 1] loser minting the trophy — refused with NotTheWinner
+- ✅ [#100 mirror] trophy records the winning basket
+- ✅ [#100 mirror] payout (winner 0) — deltas 0.9,-1 expected 0.9,-1
+- ✅ [#100 mirror] profile 0 (win): points, record, history — 8 -> 28 pts, streak 1
+- ✅ [#100 mirror] profile 1 (loss): points, record, history — 0 -> 0 pts, streak -3
+- ✅ [#94 regular 1] trophy records the winning basket
+- ✅ [#94 regular 1] trophy minted twice — refused with already in use
+- ✅ [#94 regular 1] payout (winner 1) — deltas -1,0.9 expected -1,0.9
+- ✅ [#94 regular 1] profile 0 (loss): points, record, history — 40 -> 24 pts, streak -1
+- ✅ [#94 regular 1] profile 1 (win): points, record, history — 116 -> 136 pts, streak 1
