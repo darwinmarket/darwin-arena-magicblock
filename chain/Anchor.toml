@@ -1,0 +1,20 @@
+[toolchain]
+anchor_version = "1.0.2"
+package_manager = "npm"
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.localnet]
+darwin_arena = "DjsXYvzbZFhM5rdDiq9Dvc4YgA7roLZLDB5tD7KnpcpA"
+
+[programs.devnet]
+darwin_arena = "DjsXYvzbZFhM5rdDiq9Dvc4YgA7roLZLDB5tD7KnpcpA"
+
+[provider]
+cluster = "devnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "npx tsx ../ops/test/local.ts"
