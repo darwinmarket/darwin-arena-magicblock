@@ -1,5 +1,5 @@
-// Types partagés. Les données sont mockées pour l'instant (src/lib/mock.ts),
-// elles viendront ensuite du programme Solana d'Eden.
+// Types partagés. Les données viennent du programme Solana (src/lib/chain) ;
+// src/lib/mock.ts ne garde que des définitions statiques.
 
 export type RankTier =
   | "Cell"
