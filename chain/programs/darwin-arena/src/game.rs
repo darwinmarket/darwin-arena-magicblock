@@ -281,7 +281,10 @@ impl Duel {
     pub fn draw_mutation(&mut self, r: &[u8; 32], now: i64) -> MutationSlot {
         let at = now - self.start_ts;
         let held: Vec<usize> = (0..ASSETS).filter(|i| self.weights[0][*i] > 0 || self.weights[1][*i] > 0).collect();
-        let kind = r[0] % 3;
+        // Each kind lands once per duel, in an order the VRF decides.
+        let used: Vec<u8> = self.mutations.iter().filter(|m| m.state == MUT_APPLIED).map(|m| m.kind).collect();
+        let left: Vec<u8> = [KIND_DOUBLE, KIND_FREEZE, KIND_SWAP].into_iter().filter(|k| !used.contains(k)).collect();
+        let kind = if left.is_empty() { r[0] % 3 } else { left[r[0] as usize % left.len()] };
         let pick = |c: &Vec<usize>, b: u8| c[b as usize % c.len()] as u8;
         match kind {
             KIND_DOUBLE => {
@@ -503,6 +506,20 @@ mod tests {
         let m = d.draw_mutation(&r, 1240);
         assert_eq!(m.kind, KIND_DOUBLE);
         assert_eq!(d.mult[m.a as usize], 2);
+    }
+
+    #[test]
+    fn each_kind_lands_once() {
+        let mut d = live();
+        let mut kinds = vec![];
+        for (i, t) in [1060, 1150, 1240].iter().enumerate() {
+            let r = [0u8; 32]; // same randomness every time
+            let m = d.draw_mutation(&r, *t);
+            d.mutations[i] = m;
+            kinds.push(m.kind);
+        }
+        kinds.sort();
+        assert_eq!(kinds, vec![KIND_DOUBLE, KIND_FREEZE, KIND_SWAP]);
     }
 
     #[test]
