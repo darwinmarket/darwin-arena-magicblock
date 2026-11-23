@@ -138,4 +138,8 @@ export function StatTile({
   );
 }
 
-export const pct = (n: number) => (Math.abs(n) < 0.05 ? "0.0%" : `${n > 0 ? "+" : ""}${n.toFixed(1)}%`);
+export const pct = (n: number) => {
+  // Five-minute basket moves are often a fraction of a percent: keep two decimals below 1 %.
+  const d = Math.abs(n) < 1 ? 2 : 1;
+  return Math.abs(n) < 0.5 * 10 ** -d ? `0.${"0".repeat(d)}%` : `${n > 0 ? "+" : ""}${n.toFixed(d)}%`;
+};

@@ -1,12 +1,18 @@
 "use client";
 
-// Étape 1 : choisir sa table (mise), puis chercher un adversaire (mock : trouvé après 2,5 s).
+// Étape 1 : choisir sa table (mise), puis chercher un adversaire. "Find a match" mise
+// les USDC on-chain (escrow) et s'assoit à la table : on rejoint le duel qui attend,
+// ou on en ouvre un. Un bot du keeper vient s'asseoir après quelques secondes.
+import { useWallet } from "@solana/wallet-adapter-react";
+import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 import { useEffect, useState } from "react";
 import type { IconType } from "react-icons";
 import { GiCrossedSwords, GiCrown, GiSprout } from "react-icons/gi";
 import { PlayerCard } from "@/components/PlayerCard";
 import { Panel } from "@/components/ui";
-import { OPPONENT, STAKES } from "@/lib/mock";
+import { useArena, type LiveDuel } from "@/lib/chain/ArenaProvider";
+import { usePlayer } from "@/lib/chain/hooks";
+import { STAKES } from "@/lib/mock";
 import { useProfile } from "@/lib/store";
 
 const TABLES: Record<number, { name: string; tag: string; icon: IconType; color: string }> = {
@@ -15,23 +21,57 @@ const TABLES: Record<number, { name: string; tag: string; icon: IconType; color:
   20: { name: "High Rollers", tag: "Big stakes", icon: GiCrown, color: "#ffc861" },
 };
 
-export function Lobby({ onMatched }: { onMatched: (stake: number) => void }) {
+export function Lobby({ onMatched, live = null }: { onMatched: (stake: number) => void; live?: LiveDuel | null }) {
   const { me } = useProfile();
+  const { connected } = useWallet();
+  const { setVisible } = useWalletModal();
+  const { findMatch, cancelWaiting, usdc, currentDuel, setCurrentDuel } = useArena();
   const [stake, setStake] = useState(STAKES[1]);
-  const [searching, setSearching] = useState(false);
-  const [found, setFound] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [countdown, setCountdown] = useState(3);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // On-chain state of our seat: waiting at the table, or a rival sat down.
+  const seat = live && live.mySlot !== null && live.view.status <= 1 ? live : null;
+  const searching = pending || !!seat;
+  const found = !!seat?.view.players[1];
+  const rival = usePlayer(seat ? seat.view.players[seat.mySlot === 0 ? 1 : 0] : null);
+  const OPPONENT = rival ?? me;
+  const seatStake = seat?.view.stake;
+  useEffect(() => {
+    if (seatStake) setStake(seatStake);
+  }, [seatStake]);
 
   useEffect(() => {
-    if (!searching) return;
+    if (!searching || found) return;
     const tick = setInterval(() => setElapsed((e) => e + 1), 1000);
-    const t1 = setTimeout(() => setFound(true), 2500);
-    return () => {
-      clearInterval(tick);
-      clearTimeout(t1);
-    };
-  }, [searching]);
+    return () => clearInterval(tick);
+  }, [searching, found]);
+
+  const find = async () => {
+    if (!connected) return setVisible(true);
+    setError(null);
+    if (usdc !== null && usdc < stake) return setError(`You need ${stake} test USDC: use "+ Test USDC" in the top bar.`);
+    setPending(true);
+    try {
+      setElapsed(0);
+      await findMatch(stake);
+    } catch (e) {
+      setError(String((e as Error).message).slice(0, 160));
+      setCurrentDuel(null);
+    } finally {
+      setPending(false);
+    }
+  };
+  const leave = async () => {
+    if (currentDuel === null) return;
+    try {
+      await cancelWaiting(currentDuel);
+    } catch (e) {
+      setError(String((e as Error).message).slice(0, 160));
+    }
+  };
 
   // 3, 2, 1 avant le draft
   useEffect(() => {
@@ -115,20 +155,30 @@ export function Lobby({ onMatched }: { onMatched: (stake: number) => void }) {
           <div className="mt-6 flex gap-3">
             <button
               disabled={searching}
-              onClick={() => setSearching(true)}
+              onClick={find}
               className="flex-1 rounded-2xl bg-gradient-to-r from-[#ff3fb4] via-[#ff6a3d] to-[#ffc861] py-4 font-display text-xl font-bold uppercase tracking-wider text-[#1a0612] shadow-[0_10px_40px_-10px_#ff3fb4] transition hover:brightness-110 disabled:opacity-60"
             >
-              {searching ? "Searching…" : `Find a match for ${stake} USDC`}
+              {pending ? "Staking…" : searching ? "Searching…" : connected ? `Find a match for ${stake} USDC` : "Connect wallet to play"}
             </button>
-            <button
-              disabled={searching}
-              className="rounded-2xl border border-white/15 bg-white/5 px-6 font-display font-bold uppercase tracking-wider transition hover:bg-white/10 disabled:opacity-50"
-              onClick={() => navigator.clipboard?.writeText(location.href)}
-            >
-              Invite a friend
-            </button>
+            {seat && !found ? (
+              <button
+                className="rounded-2xl border border-white/15 bg-white/5 px-6 font-display font-bold uppercase tracking-wider transition hover:bg-white/10"
+                onClick={leave}
+              >
+                Leave table
+              </button>
+            ) : (
+              <button
+                disabled={searching}
+                className="rounded-2xl border border-white/15 bg-white/5 px-6 font-display font-bold uppercase tracking-wider transition hover:bg-white/10 disabled:opacity-50"
+                onClick={() => navigator.clipboard?.writeText(location.href)}
+              >
+                Invite a friend
+              </button>
+            )}
           </div>
         )}
+        {error && <p className="mt-3 text-center text-sm text-[#ff3b5c]">{error}</p>}
       </Panel>
     </div>
   );
