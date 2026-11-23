@@ -4,7 +4,9 @@
 // HUD : les deux joueurs, leur score en gros, le chrono, la barre de domination.
 // Courbe live des deux scores avec les mutations sur la frise. Paniers détaillés des deux côtés.
 // Les mutations arrivent en notification sur le côté : elles ne bloquent jamais l'écran.
-// Mock : les prix font une marche aléatoire, le temps est accéléré x10 (5 min -> 30 s).
+// Tout vient du compte Duel délégué au rollup MagicBlock : le crank on-chain le fait
+// avancer chaque seconde avec les prix Pyth Lazer, les mutations sont tirées par le VRF,
+// les rééquilibrages sont signés par la clé de session (sans popup, sans frais).
 import { useEffect, useRef, useState } from "react";
 import { GiChemicalDrop, GiPadlock, GiScales, GiSnowflake1, GiCycle } from "react-icons/gi";
 import type { IconType } from "react-icons";
@@ -13,20 +15,20 @@ import { GameTimer, TimeDrain, fmtClock } from "@/components/game/GameTimer";
 import { RankEmblem } from "@/components/game/emblems";
 import { TokenCoin } from "@/components/game/TokenCoin";
 import { Panel, pct } from "@/components/ui";
-import { ASSETS, DUEL_SECONDS, MAX_REBALANCES, MUTATIONS, OPPONENT } from "@/lib/mock";
+import { useArena, type LiveDuel } from "@/lib/chain/ArenaProvider";
+import { MUTATION_AT } from "@/lib/chain/constants";
+import { toLegs, toWeights } from "@/lib/chain/duel";
+import { usePlayer } from "@/lib/chain/hooks";
+import { ASSETS, DUEL_SECONDS, MAX_REBALANCES } from "@/lib/mock";
 import { useProfile } from "@/lib/store";
 import { TOKENS } from "@/lib/tokens";
 import type { BasketLeg, Mutation, MutationKind, Player } from "@/lib/types";
 
-const SPEED = 10;
-const FREEZE_SECONDS = 30;
 const ME_COLOR = "#2de2ff";
 const OPP_COLOR = "#ff3fb4";
-const OPP_BASKET: BasketLeg[] = [
-  { symbol: "BONK", weight: 50 },
-  { symbol: "WIF", weight: 30 },
-  { symbol: "SOL", weight: 20 },
-];
+
+/** Mutation on the timeline: drawn (VRF answered) or still hidden. */
+type TimelineMutation = Mutation & { drawn: boolean };
 
 const MUTATION_ART: Record<MutationKind, { icon: IconType; color: string; title: string }> = {
   DOUBLE: { icon: GiChemicalDrop, color: "#ffc861", title: "Double weight" },
@@ -46,70 +48,77 @@ interface FeedItem {
   tone: "info" | "mutation" | "me";
 }
 
-const score = (basket: BasketLeg[], moves: Record<string, number>) =>
-  basket.reduce((s, l) => s + (l.weight / 100) * (moves[l.symbol] ?? 0), 0);
 
-export function Duel({ basket, stake, onEnd }: { basket: BasketLeg[]; stake: number; onEnd: (o: DuelOutcome) => void }) {
+export function Duel({
+  basket,
+  stake,
+  onEnd,
+  live = null,
+}: {
+  basket: BasketLeg[];
+  stake: number;
+  onEnd: (o: DuelOutcome) => void;
+  live?: LiveDuel | null;
+}) {
   const { me } = useProfile();
-  const [elapsed, setElapsed] = useState(0);
-  const [moves, setMoves] = useState<Record<string, number>>({}); // % depuis le début, par actif
+  const { rebalance: sendRebalance, currentDuel } = useArena();
+  const view = live?.view;
+  const mySlot = live?.mySlot ?? 0;
+  const oppSlot = mySlot === 0 ? 1 : 0;
+  const OPPONENT = usePlayer(view?.players[oppSlot]) ?? { ...me, id: "rival", name: "Rival" };
+  const [now, setNow] = useState(() => Math.floor(Date.now() / 1000));
   const [history, setHistory] = useState<{ t: number; my: number; opp: number }[]>([{ t: 0, my: 0, opp: 0 }]);
-  const [myBasket, setMyBasket] = useState(basket);
-  const [rebalances, setRebalances] = useState(MAX_REBALANCES);
   const [toast, setToast] = useState<Mutation | null>(null);
-  const [feed, setFeed] = useState<FeedItem[]>([{ t: 0, text: "Duel started, baskets revealed", tone: "info" }]);
+  const [feed, setFeed] = useState<FeedItem[]>([{ t: 0, text: "Duel started on the Ephemeral Rollup, baskets revealed", tone: "info" }]);
   const [editing, setEditing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const ended = useRef(false);
-  const elapsedRef = useRef(0);
+  const seen = useRef<Set<number>>(new Set());
 
-  // Mutations déjà tombées, et actif gelé en ce moment
-  const revealed = MUTATIONS.filter((m) => m.at <= elapsed);
-  const frozen = revealed.find((m) => m.kind === "FREEZE" && elapsed < m.at + FREEZE_SECONDS)?.symbol;
-  const doubled = revealed.filter((m) => m.kind === "DOUBLE").map((m) => m.symbol);
-  const frozenRef = useRef<string | undefined>(undefined);
-  frozenRef.current = frozen;
-
-  // Horloge + marche aléatoire des prix (remplacée par l'oracle). L'actif gelé ne bouge plus.
   useEffect(() => {
-    const t = setInterval(() => {
-      elapsedRef.current = Math.min(DUEL_SECONDS, elapsedRef.current + SPEED);
-      setElapsed(elapsedRef.current);
-      setMoves((m) =>
-        Object.fromEntries(
-          ASSETS.map((a) => [
-            a.symbol,
-            a.symbol === frozenRef.current ? (m[a.symbol] ?? 0) : (m[a.symbol] ?? 0) + (Math.random() - 0.48) * 0.6,
-          ]),
-        ),
-      );
-    }, 1000);
+    const t = setInterval(() => setNow(Math.floor(Date.now() / 1000)), 500);
     return () => clearInterval(t);
   }, []);
 
-  const my = score(myBasket, moves);
-  const opp = score(OPP_BASKET, moves);
+  // Everything below is read from the duel account on the rollup.
+  const elapsed = view?.startTs ? Math.max(0, Math.min(DUEL_SECONDS, now - view.startTs)) : 0;
+  const moves = view?.moves ?? {};
+  const myBasket = view ? toLegs(view.weights[mySlot]) : basket;
+  const OPP_BASKET = view ? toLegs(view.weights[oppSlot]) : [];
+  const my = view?.score[mySlot] ?? 0;
+  const opp = view?.score[oppSlot] ?? 0;
+  const rebalances = view?.rebalancesLeft[mySlot] ?? MAX_REBALANCES;
+  const frozen = view?.frozen ?? undefined;
+  const doubled = view ? ASSETS.filter((_, i) => view.mult[i] > 1).map((a) => a.symbol) : [];
+  const MUTATIONS: TimelineMutation[] = (view?.mutations ?? []).map((m, i) =>
+    m.state === "applied"
+      ? { at: m.at, kind: m.kind!, symbol: m.symbol!, label: m.label!, drawn: true }
+      : { at: MUTATION_AT[i], kind: "DOUBLE", symbol: "", label: m.state === "drawing" ? "VRF drawing…" : "Hidden mutation", drawn: false },
+  );
 
-  // Historique pour la courbe
+  // Historique pour la courbe (un point par seconde de duel)
   useEffect(() => {
     setHistory((h) => (h[h.length - 1].t === elapsed ? h : [...h, { t: elapsed, my, opp }]));
   }, [elapsed, my, opp]);
 
-  // Cartes mutation (VRF côté programme) : notification + fil d'événements
+  // Cartes mutation (VRF on-chain) : notification + fil d'événements dès qu'elles tombent
   useEffect(() => {
-    const m = MUTATIONS.find((x) => x.at <= elapsed && x.at > elapsed - SPEED);
-    if (!m) return;
-    setToast(m);
-    setFeed((f) => [{ t: m.at, text: m.label, tone: "mutation" }, ...f]);
-    const t = setTimeout(() => setToast(null), 4000);
-    return () => clearTimeout(t);
-  }, [elapsed]);
+    view?.mutations.forEach((m, i) => {
+      if (m.state !== "applied" || seen.current.has(i)) return;
+      seen.current.add(i);
+      const mut: Mutation = { at: m.at, kind: m.kind!, symbol: m.symbol!, label: m.label! };
+      setToast(mut);
+      setFeed((f) => [{ t: m.at, text: `${m.label} (VRF)`, tone: "mutation" }, ...f]);
+      setTimeout(() => setToast(null), 4000);
+    });
+  }, [view]);
 
   useEffect(() => {
-    if (elapsed >= DUEL_SECONDS && !ended.current) {
+    if (view && view.status >= 3 && !ended.current) {
       ended.current = true;
-      onEnd({ myScore: my, oppScore: opp, myBasket });
+      onEnd({ myScore: my, oppScore: opp, myBasket: toLegs(view.startWeights[mySlot]) });
     }
-  }, [elapsed, my, opp, myBasket, onEnd]);
+  }, [view, my, opp, mySlot, onEnd]);
 
   const left = DUEL_SECONDS - elapsed;
   const diff = my - opp;
@@ -146,7 +155,7 @@ export function Duel({ basket, stake, onEnd }: { basket: BasketLeg[]; stake: num
           </div>
         }
       >
-        <ScoreChart history={history} elapsed={elapsed} />
+        <ScoreChart history={history} elapsed={elapsed} mutations={MUTATIONS} />
       </Panel>
 
       {/* ================= Paniers ================= */}
@@ -181,6 +190,7 @@ export function Duel({ basket, stake, onEnd }: { basket: BasketLeg[]; stake: num
           <p className="mb-4 text-sm text-white/55">
             Shift your weights once the market turns. {rebalances} {rebalances === 1 ? "move" : "moves"} left this duel.
           </p>
+          {error && <p className="mb-3 text-sm text-[#ff3b5c]">{error}</p>}
           <button
             disabled={rebalances === 0}
             onClick={() => setEditing(true)}
@@ -214,11 +224,15 @@ export function Duel({ basket, stake, onEnd }: { basket: BasketLeg[]; stake: num
           basket={myBasket}
           frozen={frozen}
           onCancel={() => setEditing(false)}
-          onConfirm={(b) => {
-            setMyBasket(b);
-            setRebalances((r) => r - 1);
-            setFeed((f) => [{ t: elapsedRef.current, text: "You rebalanced your basket", tone: "me" }, ...f]);
+          onConfirm={async (b) => {
             setEditing(false);
+            if (currentDuel === null) return;
+            try {
+              await sendRebalance(currentDuel, toWeights(b));
+              setFeed((f) => [{ t: elapsed, text: "You rebalanced your basket (rollup, no fee)", tone: "me" }, ...f]);
+            } catch (e) {
+              setError(String((e as Error).message).slice(0, 160));
+            }
           }}
         />
       )}
@@ -299,7 +313,15 @@ function TugOfWar({ diff }: { diff: number }) {
   );
 }
 
-function ScoreChart({ history, elapsed }: { history: { t: number; my: number; opp: number }[]; elapsed: number }) {
+function ScoreChart({
+  history,
+  elapsed,
+  mutations: MUTATIONS,
+}: {
+  history: { t: number; my: number; opp: number }[];
+  elapsed: number;
+  mutations: TimelineMutation[];
+}) {
   const W = 1000;
   const H = 220;
   const PAD = 8;
@@ -331,7 +353,7 @@ function ScoreChart({ history, elapsed }: { history: { t: number; my: number; op
         {/* mutations sur la frise */}
         {MUTATIONS.map((m) => {
           const art = MUTATION_ART[m.kind];
-          const done = m.at <= elapsed;
+          const done = m.drawn && m.at <= elapsed;
           return (
             <line
               key={m.at}
@@ -370,7 +392,7 @@ function ScoreChart({ history, elapsed }: { history: { t: number; my: number; op
       {/* icônes des mutations : masquées tant qu'elles ne sont pas tombées */}
       {MUTATIONS.map((m) => {
         const art = MUTATION_ART[m.kind];
-        const done = m.at <= elapsed;
+        const done = m.drawn && m.at <= elapsed;
         const Icon = art.icon;
         return (
           <div
