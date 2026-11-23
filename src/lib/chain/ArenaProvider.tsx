@@ -166,8 +166,10 @@ export function ArenaProvider({ children }: { children: ReactNode }) {
       const tx = new Transaction().add(...ixs);
       tx.feePayer = publicKey;
       tx.recentBlockhash = (await base.getLatestBlockhash("confirmed")).blockhash;
-      if (cosigners.length) tx.partialSign(...cosigners);
+      // The wallet signs first, the extra keys (fresh session key) after: Phantom blocks a
+      // transaction that reaches it already signed by someone else ("dApp could be malicious").
       const signed = await signTransaction(tx);
+      if (cosigners.length) signed.partialSign(...cosigners);
       const sig = await sendAndPoll(base, signed, label);
       note(`${label} ✓`);
       return sig;
