@@ -1,8 +1,9 @@
 # Demo video script (about 3 minutes)
 
-Setup before recording: `npm run dev -- -p 3040` and `npm run keeper` running, a
-browser with Phantom on devnet (or the Burner wallet funded with ~0.05 devnet SOL),
-a Solana explorer tab on devnet, and `npx tsx ops/inspect.ts <id>` ready in a terminal.
+Setup before recording: open https://darwin.market/arena-magicblock in a fresh browser
+profile (Phantom on devnet, or the built-in Burner wallet; no devnet SOL needed), a Solana
+explorer tab on devnet, and optionally `npm run keeper` for a bot opponent (without it,
+use the practice bot).
 
 ## 0:00 – 0:20 · The pitch
 
@@ -14,11 +15,11 @@ Show the home screen, click **Play**.
 
 ## 0:20 – 0:45 · Wallet, faucet, table
 
-- Connect the wallet. Click **+ Test USDC**: 100 test USDC minted by the program.
-- Pick **The Arena (5 USDC)** and **Find a match**. *One* wallet approval: it escrows
-  the stake on Solana and authorises a MagicBlock **session key** for the rest of
-  the duel.
-- The keeper's bot sits down after a few seconds: "Opponent found".
+- Connect the wallet: the site's faucet drops devnet SOL on it automatically.
+- Pick **The Arena (5 USDC)** and **Find a match**. *One* wallet approval: it mints test
+  USDC, creates the profile, escrows the stake on Solana and authorises a MagicBlock
+  **session key** for the rest of the duel.
+- The keeper's bot sits down after a few seconds (or click **Play the practice bot**).
 
 ## 0:45 – 1:15 · Draft, commit-reveal
 
@@ -46,9 +47,12 @@ Show the home screen, click **Play**.
 
 - "Time's up: the duel is committed and undelegated back to Solana, `settle` pays the
   winner 2 x stake x 95 % from the escrow and writes both profiles."
-- Result screen: SURVIVED / EXTINCT, +20 / -16 points. Open the settle transaction
-  in the explorer.
-- Menu → Dashboard: the match is in the on-chain history; Rank tab shows the points.
+- Result screen: SURVIVED / EXTINCT, +20 / -16 points. **Mint this basket**: the winning
+  basket becomes an on-chain trophy. **Share on X** opens a post linking the duel page.
+- Open the **Spectator link**: the duel's public page, with every Solana transaction of
+  the duel on the explorer (that's the integration proof).
+- Menu → Profile: badges earned from on-chain history, the trophy. Rank: the leaderboard
+  of every player on chain.
 
 ## 2:50 – 3:00 · Close
 
