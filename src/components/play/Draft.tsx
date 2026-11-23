@@ -10,6 +10,7 @@ import { GameTimer, TimeDrain } from "@/components/game/GameTimer";
 import { TokenCoin } from "@/components/game/TokenCoin";
 import { Panel } from "@/components/ui";
 import { useArena, type LiveDuel } from "@/lib/chain/ArenaProvider";
+import { friendlyError } from "@/lib/chain/errors";
 import { useMarketHistory, usePlayer, usePrices } from "@/lib/chain/hooks";
 import { ASSETS, DRAFT_SECONDS } from "@/lib/mock";
 import { formatPrice, sparkline, TOKEN_CLASSES, TOKENS, type TokenClass } from "@/lib/tokens";
@@ -79,7 +80,7 @@ export function Draft({
       await commitBasket(currentDuel, legs);
       onLocked(legs);
     } catch (e) {
-      setError(String((e as Error).message).slice(0, 200));
+      setError(friendlyError(e));
     } finally {
       setLocking(false);
     }

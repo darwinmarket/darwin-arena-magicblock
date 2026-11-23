@@ -11,6 +11,7 @@ import { GiCrossedSwords, GiCrown, GiSprout } from "react-icons/gi";
 import { PlayerCard } from "@/components/PlayerCard";
 import { Panel } from "@/components/ui";
 import { useArena, type LiveDuel } from "@/lib/chain/ArenaProvider";
+import { friendlyError } from "@/lib/chain/errors";
 import { usePlayer } from "@/lib/chain/hooks";
 import { STAKES } from "@/lib/mock";
 import { useProfile } from "@/lib/store";
@@ -60,7 +61,7 @@ export function Lobby({ onMatched, live = null }: { onMatched: (stake: number) =
       setElapsed(0);
       await findMatch(stake);
     } catch (e) {
-      setError(String((e as Error).message).slice(0, 160));
+      setError(friendlyError(e));
       setCurrentDuel(null);
     } finally {
       setPending(false);
@@ -73,7 +74,7 @@ export function Lobby({ onMatched, live = null }: { onMatched: (stake: number) =
     try {
       await summonBot(currentDuel);
     } catch (e) {
-      setError(String((e as Error).message).slice(0, 160));
+      setError(friendlyError(e));
     } finally {
       setSummoning(false);
     }
@@ -83,7 +84,7 @@ export function Lobby({ onMatched, live = null }: { onMatched: (stake: number) =
     try {
       await cancelWaiting(currentDuel);
     } catch (e) {
-      setError(String((e as Error).message).slice(0, 160));
+      setError(friendlyError(e));
     }
   };
 

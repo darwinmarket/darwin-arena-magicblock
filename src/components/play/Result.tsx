@@ -7,6 +7,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useArena, type LiveDuel } from "@/lib/chain/ArenaProvider";
+import { friendlyError } from "@/lib/chain/errors";
 import { STATUS } from "@/lib/chain/constants";
 import { usePlayer } from "@/lib/chain/hooks";
 import { trophyPda, duelPda } from "@/lib/chain/pdas";
@@ -59,7 +60,7 @@ export function Result({
       await mintTrophy(currentDuel);
       setMinted(trophyPda(duelPda(currentDuel)).toBase58());
     } catch (e) {
-      setClaimMsg(String((e as Error).message).slice(0, 120));
+      setClaimMsg(friendlyError(e));
     } finally {
       setMinting(false);
     }
@@ -83,7 +84,7 @@ export function Result({
       const sig = await claim(currentDuel);
       setClaimMsg(sig ? "Paid out on Solana" : "Already settled");
     } catch (e) {
-      setClaimMsg(String((e as Error).message).slice(0, 120));
+      setClaimMsg(friendlyError(e));
     } finally {
       setClaiming(false);
     }

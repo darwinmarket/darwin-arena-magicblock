@@ -8,6 +8,7 @@ import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 import Link from "next/link";
 import { useState } from "react";
 import { useArena } from "@/lib/chain/ArenaProvider";
+import { friendlyError } from "@/lib/chain/errors";
 import { useProfile } from "@/lib/store";
 
 export function TopBar() {
@@ -26,7 +27,7 @@ export function TopBar() {
       setMsg("+100 USDC");
     } catch (e) {
       console.error("faucet", e);
-      setMsg(String((e as Error).message).includes("FaucetCooldown") || String((e as Error).message).includes("6001") ? "Faucet: wait 10 min" : "Faucet failed");
+      setMsg(friendlyError(e).slice(0, 40));
     } finally {
       setBusy(false);
       setTimeout(() => setMsg(null), 4000);
@@ -41,7 +42,7 @@ export function TopBar() {
       <div className="flex items-center gap-3">
         {connected && sol !== null && sol < 0.03 && (
           <button
-            onClick={() => requestSol().catch((e) => setMsg(String((e as Error).message).slice(0, 60)))}
+            onClick={() => requestSol().catch((e) => setMsg(friendlyError(e).slice(0, 60)))}
             disabled={solStatus === "requesting"}
             title="Free devnet SOL for fees, from this site's faucet"
             className="rounded-xl bg-black/50 px-3 py-2 text-xs font-black uppercase text-[#2de2ff] disabled:opacity-60"

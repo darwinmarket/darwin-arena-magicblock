@@ -16,6 +16,7 @@ import { RankEmblem } from "@/components/game/emblems";
 import { TokenCoin } from "@/components/game/TokenCoin";
 import { Panel, pct } from "@/components/ui";
 import { useArena, type LiveDuel } from "@/lib/chain/ArenaProvider";
+import { friendlyError } from "@/lib/chain/errors";
 import { MUTATION_AT } from "@/lib/chain/constants";
 import { toLegs, toWeights } from "@/lib/chain/duel";
 import { usePlayer } from "@/lib/chain/hooks";
@@ -231,7 +232,7 @@ export function Duel({
               await sendRebalance(currentDuel, toWeights(b));
               setFeed((f) => [{ t: elapsed, text: "You rebalanced your basket (rollup, no fee)", tone: "me" }, ...f]);
             } catch (e) {
-              setError(String((e as Error).message).slice(0, 160));
+              setError(friendlyError(e));
             }
           }}
         />
