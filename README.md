@@ -124,3 +124,39 @@ src/lib/chain/   isomorphic client: constants, PDAs, instruction builders, duel 
 src/components/  the game screens (Lobby, Draft, Duel, Result, menu)
 ops/             setup, keeper + bot, e2e scripts and tests
 ```
+
+## Integration notes (what we learned)
+
+1. **Pick the ER by validator version.** On 23 Nov 2026 `getVersion` reported devnet-eu
+   at 2.0.3 and devnet-us at 2.0.0; only devnet-as (`MAS1Dt9q…`) ran 1.1.1, the version
+   whose `ScheduleTask` semantics the docs and SDK 0.16 describe (2.0 routes cranks through
+   Hydra and rejects signers in scheduled instructions). We delegate to devnet-as explicitly.
+2. **The price feeds are already on every devnet ER.** Our six assets answered on -eu,
+   -as and -us with publish times under 1 s old; their base-layer copies are frozen at 0.
+   The exponent stored in the account is not the price scale: take it from
+   `pyth_lazer_list.json`.
+3. **One `ScheduleTask` runs a whole duel.** 300 iterations at 1000 ms gave 301 ticks over
+   300 s in every battery duel. Task ids are validator-global on 1.1.1, so ours are
+   derived from the duel address.
+4. **VRF inside the ER is quick.** Request to applied callback: median 1.6 s, max 2.1 s.
+5. **Whoever delegates pays rent.** A session key topped up with 0.003 SOL failed the
+   commit + delegate transaction with `InsufficientFundsForRent`; 0.02 SOL covers it.
+6. **Session keys without cloning the token into the ER.** The `SessionTokenV2` is
+   verified on Solana at commit time and the session signer is recorded in the duel;
+   the rollup only checks `signer == duel.session[slot]` (and the expiry).
+7. **Binary size is the main devnet cost.** `anchor-spl` constraints roughly doubled the
+   program; hand-rolled token helpers keep it near 490 kB (about 2.5 SOL of rent).
+
+### Bugs the tests found
+
+| Found by | Bug | Fixed in |
+|---|---|---|
+| devnet e2e | session top-up too small for the delegation rent | PR #4 |
+| devnet e2e | independent draws repeated a mutation kind (three DOUBLEs) | PR #7, each kind once in VRF order |
+| review | a duel nobody revealed could never resolve | PR #7 |
+| review | frozen-asset rebalance lock outlived the freeze until the next tick | PR #7 |
+| browser e2e | result screen bounced back to the duel (stale effect state) | PR #6 |
+| browser e2e | faucet clickable before the config loaded; config load never retried | PR #6 |
+| battery | the battery reused one session token per player across parallel duels (test bug) | battery PR |
+
+The last on-chain battery run is in [BATTERY.md](BATTERY.md).
