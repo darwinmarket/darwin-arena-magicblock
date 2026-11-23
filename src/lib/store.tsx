@@ -17,21 +17,23 @@ interface ProfileCtx {
 
 const Ctx = createContext<ProfileCtx | null>(null);
 
-const GUEST: Player = { ...ME, id: "guest", name: "guest", rank: { tier: "Cell", division: "III", points: 0 } };
+const GUEST: Player = { ...ME, id: "guest", name: "guest", rank: { tier: "Cell", division: "III", points: 0 }, showcase: [null, null, null, null] };
 
 export function ProfileProvider({ children }: { children: ReactNode }) {
   const { wallet, profile } = useArena();
   const [bannerId, setBannerId] = useState<string | null>(null);
-  const [showcase, setShowcase] = useState<(string | null)[]>(ME.showcase);
+  // null = not customised: show the badges earned on chain.
+  const [showcase, setShowcase] = useState<(string | null)[] | null>(null);
 
   const me = useMemo<Player>(() => {
     const base = wallet ? playerFromProfile(wallet, profile) : GUEST;
-    return { ...base, bannerId: bannerId ?? base.bannerId, showcase };
+    return { ...base, bannerId: bannerId ?? base.bannerId, showcase: showcase ?? base.showcase };
   }, [wallet, profile, bannerId, showcase]);
 
   const setBanner = (id: string) => setBannerId(id);
   const setShowcaseSlot = (slot: number, badgeId: string) =>
-    setShowcase((cur) => {
+    setShowcase((prev) => {
+      const cur = prev ?? me.showcase;
       const next = cur.map((id) => (id === badgeId ? null : id)); // pas de doublon
       next[slot] = badgeId;
       return next;

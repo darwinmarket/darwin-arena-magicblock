@@ -3,11 +3,14 @@
 // Onglet 2 : YOUR PROFIL · CUSTOM · COLLECTION (Badges / Banners)
 // Custom : on clique un emplacement de la vitrine 2x2, puis un badge de la collection pour l'équiper.
 // Banners : clic = équipe la bannière, appliquée immédiatement partout.
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { BadgeEmblem, BADGE_ART, RankEmblem, rarityColor, rarityLabel } from "@/components/game/emblems";
 import { PlayerCard, bannerCss } from "@/components/PlayerCard";
 import { Panel, ProgressBar, Tabs, Tooltip } from "@/components/ui";
-import { BADGES, BANNERS } from "@/lib/mock";
+import { useArena } from "@/lib/chain/ArenaProvider";
+import { badgesFor } from "@/lib/chain/badges";
+import { TIER_ORDER } from "@/lib/chain/rank";
+import { BANNERS as BANNER_DEFS } from "@/lib/mock";
 import { useProfile } from "@/lib/store";
 
 const COLLECTION_TABS = ["Badges", "Banners"] as const;
@@ -15,6 +18,15 @@ const PAGE_SIZE = 8; // 4 colonnes x 2 rangées
 
 export function ProfilTab() {
   const { me, setBanner, setShowcaseSlot } = useProfile();
+  const { profile } = useArena();
+  // Badges and banners follow the on-chain profile: progress from its counters
+  // and recent history, banners unlocked up to the current rank tier.
+  const BADGES = useMemo(() => {
+    const shares = typeof localStorage === "undefined" ? 0 : Number(localStorage.getItem("darwin-arena:shares") ?? 0);
+    return badgesFor(profile, { shares });
+  }, [profile]);
+  const tierIdx = TIER_ORDER.indexOf(me.rank.tier);
+  const BANNERS = BANNER_DEFS.map((b) => ({ ...b, unlocked: TIER_ORDER.indexOf(b.rankIcon) <= tierIdx }));
   const [collection, setCollection] = useState<(typeof COLLECTION_TABS)[number]>("Badges");
   const [slot, setSlot] = useState<number | null>(null);
   const [page, setPage] = useState(0);

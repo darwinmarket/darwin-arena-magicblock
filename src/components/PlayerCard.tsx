@@ -5,7 +5,8 @@
 import { BadgeEmblem, BADGE_ART, rarityColor, rarityLabel } from "@/components/game/emblems";
 import { RankEmblem } from "@/components/game/emblems";
 import { Tooltip } from "@/components/ui";
-import { BADGES, BANNERS } from "@/lib/mock";
+import { BADGE_DEFS as BADGES } from "@/lib/chain/badges";
+import { BANNERS } from "@/lib/mock";
 import type { Player } from "@/lib/types";
 
 // Bannières : dégradé + couleur de liseré + motif

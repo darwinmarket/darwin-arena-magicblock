@@ -3,6 +3,8 @@
 // Onglet 3 : YOUR RANK · PROGRESSION · RANKS (matrice paliers x divisions III/II/I)
 import { Panel, ProgressBar } from "@/components/ui";
 import { RankEmblem } from "@/components/game/emblems";
+import { useArena } from "@/lib/chain/ArenaProvider";
+import { useLeaderboard } from "@/lib/chain/hooks";
 import { progression } from "@/lib/chain/rank";
 import { POINTS, TIERS } from "@/lib/mock";
 import type { Division, RankTier } from "@/lib/types";
@@ -50,6 +52,8 @@ export function RankTab() {
         </Panel>
       </div>
 
+      <Leaderboard />
+
       <Panel title="Ranks">
         <div className="grid grid-cols-[auto_repeat(8,1fr)] items-center gap-y-4 text-center">
           <span />
@@ -93,5 +97,41 @@ function Row({
         );
       })}
     </>
+  );
+}
+
+/** Every player with a duel on chain, ranked by points (then wins). */
+function Leaderboard() {
+  const rows = useLeaderboard();
+  const { wallet } = useArena();
+  return (
+    <Panel title="Leaderboard" right={<span className="text-xs text-neutral-400">{rows.length} players on chain</span>}>
+      {rows.length === 0 ? (
+        <p className="text-sm text-neutral-400">No duel settled yet.</p>
+      ) : (
+        <div className="max-h-96 space-y-1.5 overflow-auto pr-1">
+          {rows.slice(0, 50).map((r, i) => {
+            const me = wallet?.equals(r.key);
+            return (
+              <div
+                key={r.key.toBase58()}
+                className={`grid grid-cols-[2.5rem_auto_1fr_auto_auto] items-center gap-3 rounded-xl px-3 py-2 ${me ? "bg-[#ffc861]/15 ring-1 ring-[#ffc861]" : "bg-white/5"}`}
+              >
+                <span className="font-display text-lg font-bold text-white/60">#{i + 1}</span>
+                <RankEmblem tier={r.player.rank.tier} division={r.player.rank.division} size={32} />
+                <span className="truncate font-display font-bold">
+                  {r.player.name}
+                  {me && <span className="ml-2 text-xs text-[#ffc861]">you</span>}
+                </span>
+                <span className="text-sm text-neutral-400">
+                  {r.wins}W {r.losses}L · {r.games ? Math.round((r.wins / r.games) * 100) : 0}%
+                </span>
+                <span className="w-20 text-right font-display font-bold">{r.points} PTS</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </Panel>
   );
 }
