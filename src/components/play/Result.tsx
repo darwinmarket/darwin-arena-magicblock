@@ -2,18 +2,55 @@
 
 // Étape 4 : SURVIVED / EXTINCT · scores · gain · Claim / Mint / Share / Rematch
 // + aperçu de la carte de partage X (1200x675, générée plus tard en image).
+// Le vainqueur vient du duel on-chain ; "Claim" force le règlement sur Solana si le
+// keeper ne l'a pas déjà fait (finish sur le rollup puis settle).
 import Link from "next/link";
+import { useState } from "react";
+import { useArena, type LiveDuel } from "@/lib/chain/ArenaProvider";
+import { STATUS } from "@/lib/chain/constants";
+import { usePlayer } from "@/lib/chain/hooks";
 import { PlayerCard } from "@/components/PlayerCard";
 import { Panel, pct } from "@/components/ui";
-import { OPPONENT, POINTS } from "@/lib/mock";
+import { POINTS } from "@/lib/mock";
 import { useProfile } from "@/lib/store";
 import type { DuelOutcome } from "./Duel";
 
-export function Result({ outcome, stake, onRematch }: { outcome: DuelOutcome; stake: number; onRematch: () => void }) {
+export function Result({
+  outcome,
+  stake,
+  onRematch,
+  live = null,
+}: {
+  outcome: DuelOutcome;
+  stake: number;
+  onRematch: () => void;
+  live?: LiveDuel | null;
+}) {
   const { me } = useProfile();
-  const won = outcome.myScore > outcome.oppScore;
-  const draw = outcome.myScore === outcome.oppScore;
+  const { claim, currentDuel } = useArena();
+  const [claiming, setClaiming] = useState(false);
+  const [claimMsg, setClaimMsg] = useState<string | null>(null);
+  const view = live?.view;
+  const mySlot = live?.mySlot ?? 0;
+  const OPPONENT = usePlayer(view?.players[mySlot === 0 ? 1 : 0]) ?? { name: "Rival" };
+  // The chain decides: winner 0/1, 2 = draw.
+  const won = view && view.winner !== 255 ? view.winner === mySlot : outcome.myScore > outcome.oppScore;
+  const draw = view && view.winner !== 255 ? view.winner === 2 : outcome.myScore === outcome.oppScore;
+  const settled = view?.status === STATUS.SETTLED && live?.layer === "base";
   const prize = (stake * 2 * 0.95).toFixed(2);
+  const onClaim = async () => {
+    if (currentDuel === null) return;
+    setClaiming(true);
+    setClaimMsg(null);
+    try {
+      const sig = await claim(currentDuel);
+      setClaimMsg(sig ? "Paid out on Solana" : "Already settled");
+    } catch (e) {
+      setClaimMsg(String((e as Error).message).slice(0, 120));
+    } finally {
+      setClaiming(false);
+    }
+  };
 
   return (
     <div className="space-y-5">
@@ -34,12 +71,24 @@ export function Result({ outcome, stake, onRematch }: { outcome: DuelOutcome; st
             </span>
           )}
         </div>
+        <div className="mt-2 text-xs uppercase tracking-widest text-neutral-500">
+          {settled
+            ? "Settled on Solana · profile updated"
+            : view?.status === STATUS.FINISHED
+              ? live?.layer === "er"
+                ? "Committing the duel back to Solana…"
+                : "Settling on Solana…"
+              : "Waiting for the final tick…"}
+          {view?.forfeit && " · forfeit (a basket was never revealed)"}
+        </div>
       </div>
 
       <div className="grid gap-5 md:grid-cols-2">
         <Panel title="Actions">
           <div className="grid grid-cols-2 gap-3">
-            {won && <Action label="Claim" primary />}
+            {(won || draw) && (
+              <Action label={settled ? "Paid ✓" : claiming ? "Claiming…" : claimMsg ?? "Claim"} primary onClick={settled ? undefined : onClaim} />
+            )}
             <Action label="Mint this basket" />
             <Action label="Share on X" />
             <Action label="Rematch" onClick={onRematch} />
