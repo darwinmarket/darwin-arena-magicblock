@@ -14,6 +14,7 @@ export const configPda = () => pda([Buffer.from("config")]);
 export const tablePda = (tier: number) => pda([Buffer.from("table"), Buffer.from([tier])]);
 export const duelPda = (id: number | bigint) => pda([Buffer.from("duel"), u64le(id)]);
 export const profilePda = (user: PublicKey) => pda([Buffer.from("profile"), user.toBuffer()]);
+export const trophyPda = (duel: PublicKey) => pda([Buffer.from("trophy"), duel.toBuffer()]);
 export const faucetPda = (user: PublicKey) => pda([Buffer.from("faucet"), user.toBuffer()]);
 
 /// The identity PDA this program signs VRF requests with.

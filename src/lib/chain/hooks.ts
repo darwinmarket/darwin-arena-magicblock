@@ -6,7 +6,7 @@ import { PublicKey } from "@solana/web3.js";
 import { useEffect, useState } from "react";
 import type { Player } from "../types";
 import { useArena } from "./ArenaProvider";
-import { ASSETS, FEEDS } from "./constants";
+import { ASSETS, FEEDS, SCORE_PER_PCT, SYMBOLS } from "./constants";
 import { profilePda } from "./pdas";
 import { playerFromProfile } from "./profile";
 
@@ -138,5 +138,60 @@ export function useLeaderboard(everyMs = 30_000): LeaderRow[] {
       clearInterval(t);
     };
   }, [program, everyMs]);
+  return rows;
+}
+
+export interface TrophyView {
+  address: PublicKey;
+  duel: PublicKey;
+  duelId: number;
+  opponent: PublicKey;
+  weights: number[];
+  score: number; // %
+  oppScore: number; // %
+  stake: number; // USDC
+  mintedTs: number;
+  mutations: string[];
+}
+
+/// The trophies a wallet minted (Trophy PDAs whose owner is the wallet).
+export function useTrophies(owner: PublicKey | null | undefined, refreshKey = 0): TrophyView[] {
+  const { program } = useArena();
+  const [rows, setRows] = useState<TrophyView[]>([]);
+  const k = owner?.toBase58();
+  useEffect(() => {
+    if (!k) return setRows([]);
+    let stop = false;
+    program.account.trophy
+      .all([{ memcmp: { offset: 8, bytes: k } }])
+      .then((all) => {
+        if (stop) return;
+        const n = (x: { toString(): string }) => Number(x.toString());
+        setRows(
+          all
+            .map(({ publicKey, account }) => ({
+              address: publicKey,
+              duel: account.duel,
+              duelId: n(account.duelId),
+              opponent: account.opponent,
+              weights: Array.from(account.weights),
+              score: n(account.score) / SCORE_PER_PCT,
+              oppScore: n(account.oppScore) / SCORE_PER_PCT,
+              stake: n(account.stake) / 1e6,
+              mintedTs: n(account.mintedTs),
+              mutations: account.mutations
+                .filter((m: { state: number }) => m.state === 2)
+                .map((m: { kind: number; a: number; b: number }) =>
+                  m.kind === 0 ? `${SYMBOLS[m.a]} x2` : m.kind === 1 ? `${SYMBOLS[m.a]} frozen` : `swap ${SYMBOLS[m.a]}/${SYMBOLS[m.b]}`,
+                ),
+            }))
+            .sort((a, b) => b.mintedTs - a.mintedTs),
+        );
+      })
+      .catch(() => {});
+    return () => {
+      stop = true;
+    };
+  }, [k, program, refreshKey]);
   return rows;
 }
