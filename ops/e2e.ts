@@ -15,6 +15,7 @@ import assert from "assert";
 import { createSessionIx, ix } from "../src/lib/chain/arena";
 import { DUEL_SECONDS, MUTATION_AT, PROGRAM_ID, STATUS, STAKES, SYMBOLS } from "../src/lib/chain/constants";
 import { commitment, duelView, randomSalt, toLegs, toWeights, type Leg } from "../src/lib/chain/duel";
+import { pickDuelId } from "../src/lib/chain/matchmaking";
 import { ataOf, configPda, duelPda, profilePda, sessionTokenPda, tablePda } from "../src/lib/chain/pdas";
 import { baseConnection, baseProgram, erConnection, erProgram, namedKeypair, sendLogged, short, sleep } from "./lib/env";
 
@@ -81,7 +82,7 @@ async function main() {
     if (!opener) throw new Error("table busy with a stranger's duel; pick another tier");
     await sendLogged(base, "cancel stale open", [await ix.cancelDuel(bp, opener.wallet.publicKey, tier, d.id.toNumber(), ataOf(opener.wallet.publicKey, mint), null, vault)], [opener.wallet]);
   }
-  const id = (await bp.account.config.fetch(configPda())).duelCount.toNumber();
+  const id = pickDuelId((await bp.account.config.fetch(configPda())).duelCount.toNumber());
   const until = Math.floor(Date.now() / 1000) + 3600;
   // One wallet transaction per player: stake + session key authorisation.
   await sendLogged(base, "bot1 open + session", [

@@ -896,7 +896,13 @@ export type DarwinArena = {
     {
       "name": "openDuel",
       "docs": [
-        "Sit at an empty table: escrow the stake and open a duel waiting for a rival."
+        "Sit at an empty table: escrow the stake and open a duel waiting for a rival.",
+        "",
+        "The caller picks the duel id: any free id in the window just above the",
+        "counter (`duel_count .. duel_count + ID_WINDOW`). Clients pick a random",
+        "slot, so two players opening at the same moment almost never compete for",
+        "the same address (seeding by the counter itself made every concurrent",
+        "open but one fail with ConstraintSeeds)."
       ],
       "discriminator": [
         57,
@@ -975,9 +981,8 @@ export type DarwinArena = {
                 ]
               },
               {
-                "kind": "account",
-                "path": "config.duel_count",
-                "account": "config"
+                "kind": "arg",
+                "path": "id"
               }
             ]
           }
@@ -1003,6 +1008,10 @@ export type DarwinArena = {
         {
           "name": "tier",
           "type": "u8"
+        },
+        {
+          "name": "id",
+          "type": "u64"
         }
       ]
     },
@@ -1867,6 +1876,11 @@ export type DarwinArena = {
       "code": 6029,
       "name": "notTheWinner",
       "msg": "Only the winner of a settled duel can mint its trophy"
+    },
+    {
+      "code": 6030,
+      "name": "badDuelId",
+      "msg": "Duel id outside the open window"
     }
   ],
   "types": [

@@ -95,7 +95,7 @@ export const ix = {
 
   openDuel: (p: ArenaProgram, player: PublicKey, tier: number, duelId: number, playerUsdc: PublicKey, vault: PublicKey) =>
     p.methods
-      .openDuel(tier)
+      .openDuel(tier, new BN(duelId))
       .accountsPartial({
         player,
         profile: profilePda(player),

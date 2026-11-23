@@ -382,6 +382,8 @@ pub enum ArenaError {
     InsufficientFunds,
     #[msg("Only the winner of a settled duel can mint its trophy")]
     NotTheWinner,
+    #[msg("Duel id outside the open window")]
+    BadDuelId,
 }
 
 #[cfg(test)]

@@ -27,6 +27,7 @@ import { DELEGATION_PROGRAM_ID, DUEL_SECONDS, MUTATION_AT, PROGRAM_ID, STAKES, S
 import { commitment, duelView, randomSalt, type DuelView } from "../src/lib/chain/duel";
 import { ataOf, configPda, duelPda, profilePda, sessionTokenPda, tablePda, trophyPda } from "../src/lib/chain/pdas";
 import { uniqueHandles } from "./lib/handles";
+import { pickDuelId, seatAtTable } from "../src/lib/chain/matchmaking";
 import { adminKeypair, baseConnection, baseProgram, erConnection, erProgram, KEY_DIR, loadKeypair, namedKeypair, send, short, sleep } from "./lib/env";
 
 const base = baseConnection();
@@ -34,7 +35,9 @@ const er = erConnection();
 const bp = baseProgram();
 const ep = erProgram();
 const crank = namedKeypair("crank");
-const N_PLAYERS = Math.max(14, Number(process.argv[2] ?? 14));
+/// 14 seats for the scenario duels, plus RUSH players for the concurrency test.
+const RUSH = 6;
+const N_PLAYERS = Math.max(14 + RUSH, Number(process.argv[2] ?? 14 + RUSH));
 const ROUNDS = Number(process.argv[3] ?? 1);
 const DRAFT_GRACE = 30;
 const REVEAL_SECONDS = 45;
@@ -161,7 +164,7 @@ async function seat(tier: number, a: Player, b: Player): Promise<number> {
     if (!t.waiting.equals(PublicKey.default)) throw new Error(`table ${tier} busy (keeper bot or stranger running?)`);
     let id = 0;
     for (let attempt = 0; attempt < 5; attempt++) {
-      id = (await bp.account.config.fetch(configPda())).duelCount.toNumber();
+      id = pickDuelId((await bp.account.config.fetch(configPda())).duelCount.toNumber());
       try {
         await tx(base, [await ix.openDuel(bp, a.key.publicKey, tier, id, a.usdc, vault)], [a.key], "open");
         break;
@@ -382,6 +385,52 @@ async function runDuel(plan: DuelPlan) {
   }
 }
 
+async function rush(rushers: Player[], vault: PublicKey) {
+  const tier = 1;
+  const tag = `[rush x${rushers.length}]`;
+  const before = await Promise.all(rushers.map(usdcOf));
+  const t0 = Date.now();
+  const results = await Promise.allSettled(
+    rushers.map((p) =>
+      seatAtTable({
+        program: bp,
+        player: p.key.publicKey,
+        tier,
+        playerUsdc: p.usdc,
+        vault,
+        send: (ixs) => tx(base, ixs, [p.key], "rush seat"),
+        tries: 8,
+      }),
+    ),
+  );
+  time("rush: all seated", Date.now() - t0);
+  const failed = results.filter((r) => r.status === "rejected");
+  check(`${tag} every player seated, no user-visible failure`, failed.length === 0, failed.map((f) => String((f as PromiseRejectedResult).reason?.message ?? "").split("\n")[0].slice(0, 100)).join(" | "));
+  const ok = results.filter((r): r is PromiseFulfilledResult<Awaited<ReturnType<typeof seatAtTable>>> => r.status === "fulfilled").map((r) => r.value);
+  const retries = ok.reduce((a, r) => a + r.attempts - 1, 0);
+  notes.push(`rush: ${rushers.length} simultaneous seats on one table, ${retries} automatic retries, ${ok.filter((r) => r.joined).length} joins`);
+  const ids = [...new Set(ok.map((r) => r.id))];
+  const duels = await Promise.all(ids.map(async (id) => (await baseDuel(id)).view!));
+  const paired = duels.filter((d) => d.players[1]).length;
+  check(`${tag} players paired into duels`, paired === Math.floor(rushers.length / 2), `${duels.length} duel(s), ${paired} full, ${retries} retries`);
+  // Nobody commits: wait out the draft, cancel, check everyone got the stake back.
+  const { vault: v } = await bp.account.config.fetch(configPda());
+  const latest = Math.max(...duels.map((d) => d.draftDeadline || 0));
+  await sleep(Math.max(0, (latest + DRAFT_GRACE + 3) * 1000 - Date.now()));
+  for (const d of duels) {
+    const usdc0 = ataOf(d.players[0], (await bp.account.config.fetch(configPda())).usdcMint);
+    if (d.players[1]) {
+      const usdc1 = ataOf(d.players[1], (await bp.account.config.fetch(configPda())).usdcMint);
+      await tx(base, [await ix.cancelDuel(bp, crank.publicKey, tier, d.id, usdc0, usdc1, v)], [crank], "cancel draft");
+    } else {
+      const opener = rushers.find((p) => p.key.publicKey.equals(d.players[0]))!;
+      await tx(base, [await ix.cancelDuel(bp, opener.key.publicKey, tier, d.id, usdc0, null, v)], [opener.key], "cancel open");
+    }
+  }
+  const after = await Promise.all(rushers.map(usdcOf));
+  check(`${tag} every stake refunded`, after.every((x, i) => x === before[i]), `${before.join(",")} -> ${after.join(",")}`);
+}
+
 async function main() {
   const t0 = Date.now();
   const admin = adminKeypair();
@@ -398,6 +447,10 @@ async function main() {
     if (opener) await tx(base, [await ix.cancelDuel(bp, opener.key.publicKey, tier, d.id.toNumber(), opener.usdc, null, config.vault)], [opener.key], "cancel stale open");
   }
   const p = (i: number) => players[i % players.length];
+  // Concurrency: RUSH players hit the same table at the same instant through the
+  // same race-proof path the front uses. They must pair up with no failure.
+  if (!process.env.ONLY || process.env.ONLY.split(",").includes("rush")) await rush(players.slice(14, 14 + RUSH), config.vault);
+
   for (let r = 0; r < ROUNDS; r++) {
     // Every seat in a round is a different player, so balance and profile
     // deltas can be checked per duel; pairings rotate between rounds.

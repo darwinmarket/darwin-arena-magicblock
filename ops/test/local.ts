@@ -100,6 +100,11 @@ async function main() {
     await rejects(send(conn, [await ix.openDuel(program, bob.publicKey, 1, id, usdc(bob.publicKey), vault)], [bob]), "TableBusy");
   });
 
+  await it("a duel id far above the counter is refused", async () => {
+    const count = (await program.account.config.fetch(configPda())).duelCount.toNumber();
+    await rejects(send(conn, [await ix.openDuel(program, bob.publicKey, 0, count + 5000, usdc(bob.publicKey), vault)], [bob]), "BadDuelId");
+  });
+
   await it("the opener cannot join their own duel", async () => {
     await rejects(send(conn, [await ix.joinDuel(program, alice.publicKey, 1, duelId, usdc(alice.publicKey), vault)], [alice]), "SelfDuel");
   });
