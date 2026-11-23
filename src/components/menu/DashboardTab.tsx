@@ -2,10 +2,14 @@
 
 // Onglet 1 : VERSUS · STATS OVERVIEW · LAST MATCHES
 // L'œil sur une carte joueur bascule les stats affichées (moi ou l'adversaire).
-import { useState } from "react";
+import { PublicKey } from "@solana/web3.js";
+import { useEffect, useState } from "react";
 import { PlayerCard } from "@/components/PlayerCard";
 import { Panel, StatTile, pct } from "@/components/ui";
-import { MATCHES, OPPONENT, STATS } from "@/lib/mock";
+import { useArena } from "@/lib/chain/ArenaProvider";
+import { usePlayer } from "@/lib/chain/hooks";
+import { profilePda } from "@/lib/chain/pdas";
+import { matchesFromProfile, statsFromProfile } from "@/lib/chain/profile";
 import { useProfile } from "@/lib/store";
 import type { Match } from "@/lib/types";
 
@@ -20,10 +24,23 @@ export function DashboardTab() {
   const [viewing, setViewing] = useState<"me" | "opp">("me");
   const [openMatch, setOpenMatch] = useState<Match | null>(null);
 
-  const stats = STATS[viewing];
-  const matches = MATCHES[viewing];
+  // Stats and history straight from the on-chain profiles (mine, and the last rival's).
+  const { profile, program } = useArena();
+  const myMatches = matchesFromProfile(profile);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const lastOpp: PublicKey | null = profile && profile.historyLen > 0 ? (profile.history[profile.historyHead] as any).opponent : null;
+  const OPPONENT = usePlayer(lastOpp) ?? { ...me, id: "none", name: "No rival yet" };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [oppProfile, setOppProfile] = useState<any | null>(null);
+  const oppKey = lastOpp?.toBase58();
+  useEffect(() => {
+    if (!oppKey) return;
+    program.account.profile.fetchNullable(profilePda(new PublicKey(oppKey))).then(setOppProfile).catch(() => {});
+  }, [oppKey, program]);
+  const stats = statsFromProfile(viewing === "me" ? profile : oppProfile);
+  const matches = viewing === "me" ? myMatches : matchesFromProfile(oppProfile);
   const viewingName = viewing === "me" ? me.name : OPPONENT.name;
-  const last = MATCHES.me[0];
+  const last = myMatches[0] ?? { myScore: 0, oppScore: 0, stake: 0 };
 
   const eyeLabel = (
     <span className="text-sm font-black italic text-amber-400">
@@ -77,6 +94,7 @@ export function DashboardTab() {
 
         <Panel title="Last matches" right={eyeLabel}>
           <div className="space-y-2">
+            {matches.length === 0 && <p className="text-sm text-neutral-400">No duel on chain yet. Go play one!</p>}
             {matches.map((m) => (
               <button
                 key={m.id}

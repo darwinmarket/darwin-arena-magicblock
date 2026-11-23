@@ -3,7 +3,8 @@
 // Onglet 3 : YOUR RANK · PROGRESSION · RANKS (matrice paliers x divisions III/II/I)
 import { Panel, ProgressBar } from "@/components/ui";
 import { RankEmblem } from "@/components/game/emblems";
-import { POINTS, PROGRESSION, TIERS } from "@/lib/mock";
+import { progression } from "@/lib/chain/rank";
+import { POINTS, TIERS } from "@/lib/mock";
 import type { Division, RankTier } from "@/lib/types";
 import { useProfile } from "@/lib/store";
 
@@ -13,6 +14,7 @@ export function RankTab() {
   const { me } = useProfile();
   const { tier, division, points } = me.rank;
   const next = TIERS[TIERS.indexOf(tier) + 1] ?? tier;
+  const PROGRESSION = progression(points);
 
   return (
     <div className="space-y-5">
