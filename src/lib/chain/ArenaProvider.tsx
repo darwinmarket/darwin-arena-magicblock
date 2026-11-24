@@ -59,6 +59,8 @@ interface ArenaCtx {
   createProfile: (name: string) => Promise<string>;
   findMatch: (stake: number) => Promise<number>;
   cancelWaiting: (duelId: number) => Promise<string>;
+  /** Draft stuck past its deadline (+ grace): cancel the duel, both stakes go back. */
+  abandonDraft: (duelId: number) => Promise<string>;
   commitBasket: (duelId: number, legs: Leg[]) => Promise<string>;
   rebalance: (duelId: number, weights: number[]) => Promise<string>;
   claim: (duelId: number) => Promise<string | null>;
@@ -285,6 +287,23 @@ export function ArenaProvider({ children }: { children: ReactNode }) {
     [publicKey, config, program, sendWallet, setCurrentDuel, refresh],
   );
 
+  const abandonDraft = useCallback(
+    async (duelId: number) => {
+      if (!publicKey) throw new Error("Connect a wallet first");
+      if (!config) throw new Error("Arena config not loaded yet, retry in a second");
+      const d = await program.account.duel.fetch(duelPda(duelId));
+      const [p0, p1] = d.players as PublicKey[];
+      const sig = await sendWallet(
+        [await ix.cancelDuel(program, publicKey, d.tier, duelId, ataOf(p0, config.mint), ataOf(p1, config.mint), config.vault)],
+        "Leave draft (both stakes refunded)",
+      );
+      setCurrentDuel(null);
+      refresh();
+      return sig;
+    },
+    [publicKey, config, program, sendWallet, setCurrentDuel, refresh],
+  );
+
   /// Lock the basket: only its hash goes on chain. Signed by the session key; if
   /// the rival already committed, the same transaction hands the duel to the ER.
   const commitBasket = useCallback(
@@ -411,6 +430,7 @@ export function ArenaProvider({ children }: { children: ReactNode }) {
     createProfile,
     findMatch,
     cancelWaiting,
+    abandonDraft,
     commitBasket,
     rebalance,
     claim,

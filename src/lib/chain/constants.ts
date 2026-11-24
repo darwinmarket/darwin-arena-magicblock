@@ -48,9 +48,9 @@ export const FEEDS = ASSETS.map((a) => new PublicKey(a.feed));
 export const STAKES = [1, 5, 20];
 export const USDC_DECIMALS = 6;
 export const DRAFT_SECONDS = 60;
-export const DUEL_SECONDS = 300;
+export const DUEL_SECONDS = 60;
 export const REVEAL_SECONDS = 45;
-export const MUTATION_AT = [60, 150, 240];
+export const MUTATION_AT = [15, 30, 45];
 export const FREEZE_SECONDS = 30;
 export const MAX_REBALANCES = 2;
 /// Score unit on chain: 1e-9 of a fraction, so 1e7 = 1 %.

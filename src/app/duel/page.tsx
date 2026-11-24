@@ -55,8 +55,8 @@ function DuelSpectator() {
     base.getAccountInfo(trophyPda(duelPda(id))).then((ai) => setTrophy(ai ? trophyPda(duelPda(id)).toBase58() : null)).catch(() => {});
   }, [id, base, v?.status]);
 
-  if (id === null) return <p className="text-center text-neutral-400">No duel id in the link.</p>;
-  if (!v) return <p className="text-center text-neutral-400">Loading duel #{id} from chain…</p>;
+  if (id === null) return <p className="text-center text-neutral-400">No race id in the link.</p>;
+  if (!v) return <p className="text-center text-neutral-400">Loading race #{id} from chain…</p>;
 
   const elapsed = v.startTs ? Math.max(0, Math.min(DUEL_SECONDS, now - v.startTs)) : 0;
   const lead = v.score[0] - v.score[1];
@@ -67,10 +67,10 @@ function DuelSpectator() {
       <TradingFloorBackground dim={0.5} />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-display text-3xl font-bold uppercase">
-          Duel #{v.id} <span className="text-lg text-white/50">· {STAKES[v.tier]} USDC table</span>
+          Race #{v.id} <span className="text-lg text-white/50">{STAKES[v.tier]} USDC table</span>
         </h1>
         <span className="rounded-full bg-neutral-800 px-3 py-1 text-xs font-black uppercase text-neutral-300">
-          {STATUS_LABEL[v.status]} · {live?.layer === "er" ? "on the Ephemeral Rollup" : "on Solana"}
+          {STATUS_LABEL[v.status]}, {live?.layer === "er" ? "on the Ephemeral Rollup" : "on Solana"}
         </span>
       </div>
 
@@ -78,7 +78,7 @@ function DuelSpectator() {
         {p0 ? <PlayerCard player={p0} /> : <div />}
         <div className="text-center">
           {v.status === STATUS.LIVE ? (
-            <GameTimer left={DUEL_SECONDS - elapsed} total={DUEL_SECONDS} label="Duel ends in" />
+            <GameTimer left={DUEL_SECONDS - elapsed} total={DUEL_SECONDS} label="Finish in" />
           ) : (
             <div className="font-display text-5xl font-bold italic">VS</div>
           )}
@@ -89,7 +89,7 @@ function DuelSpectator() {
           </div>
           {decided && v.status >= STATUS.FINISHED && (
             <div className="mt-1 font-display text-sm font-bold uppercase text-[#ffc861]">
-              {v.winner === 2 ? "Draw · stakes refunded" : `${(v.winner === 0 ? p0 : p1)?.name ?? "Winner"} survives`}
+              {v.winner === 2 ? "Dead heat, stakes refunded" : `${(v.winner === 0 ? p0 : p1)?.name ?? "Winner"} survives`}
               {v.forfeit && " (forfeit)"}
             </div>
           )}
@@ -117,7 +117,7 @@ function DuelSpectator() {
                     </span>
                   </div>
                 ))}
-                <div className="text-xs text-white/40">{v.rebalancesLeft[s]} rebalance(s) left</div>
+                <div className="text-xs text-white/40">{v.rebalancesLeft[s]} {v.rebalancesLeft[s] === 1 ? "rebalance" : "rebalances"} left</div>
               </div>
             ) : (
               <p className="text-sm text-white/50">
@@ -178,7 +178,7 @@ function DuelSpectator() {
 
       <div className="text-center">
         <Link href="/play" className="rounded-2xl bg-gradient-to-r from-[#ff3fb4] via-[#ff6a3d] to-[#ffc861] px-8 py-3 font-display font-bold uppercase text-[#1a0612]">
-          Play your own duel
+          Play your own race
         </Link>
       </div>
     </div>

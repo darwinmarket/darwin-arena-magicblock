@@ -89,7 +89,7 @@ export interface DuelView {
   forfeit: boolean;
 }
 
-const MUT_AT = [60, 150, 240];
+const MUT_AT = [15, 30, 45];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function duelView(d: any): DuelView {

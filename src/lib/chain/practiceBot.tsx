@@ -92,7 +92,7 @@ export async function summonPracticeBot(opts: {
 /// Plays the bot's side of the current duel: reveal on the rollup, one rebalance.
 export function PracticeBotAutopilot({ erProgram }: { erProgram: ArenaProgram }) {
   const { currentDuel, er } = useArena();
-  const live = useDuel(currentDuel, 2000);
+  const live = useDuel(currentDuel, 1000);
   const busy = useRef<Record<string, number>>({});
   useEffect(() => {
     if (!live || live.layer !== "er" || currentDuel === null || typeof localStorage === "undefined") return;

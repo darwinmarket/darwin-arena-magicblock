@@ -102,3 +102,82 @@ body {
 @keyframes arena-rise { from { opacity: 0; transform: translateY(14px); filter: blur(6px); } to { opacity: 1; transform: none; filter: none; } }
 .arena-rise { animation: arena-rise 0.7s cubic-bezier(.2,.8,.2,1) both; }
 @media (prefers-reduced-motion: reduce) { .arena-shine, .arena-breathe, .arena-rise { animation: none; } }
+
+/* Marque de la barre du haut : le D tremble, fonce et efface le texte (survol), puis revient */
+@keyframes darwin-dash {
+  0% { transform: none; }
+  7% { transform: translateX(-2px) rotate(-8deg); }
+  14% { transform: translateX(2px) rotate(8deg); }
+  21% { transform: translateX(-2px) rotate(-6deg); }
+  28% { transform: translateX(1px) rotate(5deg); }
+  36% { transform: translateX(-8px) skewX(14deg) scaleX(0.85); animation-timing-function: cubic-bezier(0.8, 0, 0.2, 1); }
+  92% { transform: translateX(calc(var(--dash) + 6px)) skewX(-16deg) scaleX(1.15); }
+  100% { transform: translateX(var(--dash)); }
+}
+@keyframes darwin-back {
+  0% { transform: translateX(var(--dash)); }
+  25% { transform: translateX(calc(var(--dash) + 6px)) skewX(10deg); animation-timing-function: cubic-bezier(0.7, 0, 0.25, 1); }
+  100% { transform: none; }
+}
+@keyframes darwin-wipe {
+  0%, 36% { clip-path: inset(0 0 0 0); filter: none; animation-timing-function: cubic-bezier(0.8, 0, 0.2, 1); }
+  80% { filter: blur(2px); }
+  92%, 100% { clip-path: inset(0 0 0 100%); filter: blur(2px); }
+}
+@keyframes darwin-unwipe {
+  0%, 25% { clip-path: inset(0 0 0 100%); animation-timing-function: cubic-bezier(0.7, 0, 0.25, 1); }
+  100% { clip-path: inset(0 0 0 0); }
+}
+@keyframes darwin-trail {
+  0%, 34% { opacity: 0; transform: translateY(-50%) scaleX(0.2); }
+  55%, 85% { opacity: 1; transform: translateY(-50%) scaleX(1); }
+  100% { opacity: 0; transform: translateY(-50%) scaleX(0.3); }
+}
+.darwin-trail {
+  opacity: 0;
+  transform: translateY(-50%);
+  transform-origin: right center;
+  background:
+    linear-gradient(90deg, transparent, #2de2ff) 0 15% / 70% 2px no-repeat,
+    linear-gradient(90deg, transparent, #ff3fb4) 30% 50% / 100% 3px no-repeat,
+    linear-gradient(90deg, transparent, #2de2ff) 60% 85% / 55% 2px no-repeat;
+  filter: drop-shadow(0 0 4px #2de2ff);
+}
+.darwin-chip[data-dash="in"] .darwin-mark { animation: darwin-dash 750ms forwards; }
+.darwin-chip[data-dash="in"] .darwin-text { animation: darwin-wipe 750ms forwards; }
+.darwin-chip[data-dash="in"] .darwin-trail { animation: darwin-trail 750ms forwards; }
+.darwin-chip[data-dash="out"] .darwin-mark { animation: darwin-back 520ms forwards; }
+.darwin-chip[data-dash="out"] .darwin-text { animation: darwin-unwipe 520ms forwards; }
+@media (prefers-reduced-motion: reduce) {
+  .darwin-chip[data-dash] .darwin-mark, .darwin-chip[data-dash] .darwin-text, .darwin-chip[data-dash] .darwin-trail { animation: none; }
+}
+
+/* Duel en course : on ressort de la salle des marchés */
+@keyframes race-exit {
+  0% { opacity: 1; transform: scale(1); filter: none; }
+  100% { opacity: 0; transform: scale(1.8); filter: blur(10px) brightness(1.8); }
+}
+.race-exit { background-size: cover; background-position: center; animation: race-exit 0.9s cubic-bezier(0.6, 0, 0.8, 0.4) forwards; }
+
+/* Boutons qui arrivent un peu après le message d'arrivée */
+@keyframes race-late { 0%, 60% { opacity: 0; transform: translateY(10px); } 100% { opacity: 1; transform: none; } }
+.race-late { animation: race-late 1.6s ease-out both; }
+
+/* Kit "course auto" : fibre de carbone et damier */
+.race-carbon {
+  background-image:
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.022) 0 2px, transparent 2px 6px),
+    repeating-linear-gradient(-45deg, rgba(0, 0, 0, 0.28) 0 2px, transparent 2px 6px);
+}
+.race-checker {
+  background-image: conic-gradient(#fff 25%, transparent 0 50%, #fff 0 75%, transparent 0);
+  background-size: 8px 8px;
+}
+@keyframes race-needle { from { transform: rotate(-120deg); } }
+
+/* Fin de course : la scène se voile derrière le verdict */
+@keyframes race-veil { from { background: rgba(8, 5, 20, 0); backdrop-filter: blur(0); } to { background: rgba(8, 5, 20, 0.7); backdrop-filter: blur(6px); } }
+.race-veil { animation: race-veil 0.9s ease-out forwards; }
+/* Podium : fondu d'entrée par-dessus la course voilée */
+@keyframes race-podium { from { opacity: 0; transform: scale(1.02); } to { opacity: 1; transform: none; } }
+.race-podium { animation: race-podium 0.6s ease-out both; }

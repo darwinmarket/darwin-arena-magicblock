@@ -19,7 +19,7 @@ export function shareOnX(o: {
   prize: number;
   duelId: number;
 }) {
-  const basket = o.basket.map((l) => `${l.symbol} ${l.weight}%`).join(" · ");
+  const basket = o.basket.map((l) => `${l.symbol} ${l.weight}%`).join(", ");
   const head =
     o.result === "SURVIVED"
       ? `🧬 SURVIVED in Darwin Arena: ${pct(o.myScore)} vs ${pct(o.oppScore)}, +${o.prize.toFixed(2)} USDC`

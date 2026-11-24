@@ -50,7 +50,7 @@ export const ASSETS: Asset[] = [
 ];
 
 export const STAKES = [1, 5, 20]; // USDC
-export const DUEL_SECONDS = 300;
+export const DUEL_SECONDS = 60;
 export const DRAFT_SECONDS = 60;
 export const MAX_REBALANCES = 2;
 
