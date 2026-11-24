@@ -61,7 +61,7 @@ pub const DRAFT_SECONDS: i64 = 60;
 pub const DRAFT_GRACE: i64 = 30;
 /// Time both players have, once the duel is on the rollup, to reveal.
 pub const REVEAL_SECONDS: i64 = 45;
-pub const DUEL_SECONDS: i64 = 300;
+pub const DUEL_SECONDS: i64 = 60;
 pub const TICK_MILLIS: i64 = 1_000;
 
 /// MagicBlock's real-time pricing oracle (Pyth Lazer, pushed into the ERs).

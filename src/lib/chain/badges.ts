@@ -49,7 +49,7 @@ export const BADGE_DEFS: Def[] = [
   { id: "survivor", name: "Survivor", condition: "Win 10 duels", goal: 10, progress: (p) => n(p.wins) },
   { id: "streak", name: "Unstoppable", condition: "10 win streak", goal: 10, progress: (p) => n(p.bestStreak) },
   { id: "veteran", name: "Veteran", condition: "Play 50 duels", goal: 50, progress: (p) => n(p.games) },
-  { id: "grinder", name: "Grinder", condition: "Play 2 hours of duels (5 min each)", goal: 24, progress: (p) => n(p.games) },
+  { id: "grinder", name: "Grinder", condition: "Play 24 races", goal: 24, progress: (p) => n(p.games) },
   { id: "mutant", name: "Mutant", condition: "Win a duel through all 3 mutations", goal: 1, progress: (_p, rs) => wins(rs).filter((r) => r.mutations >= 3).length },
   { id: "diversifier", name: "Diversifier", condition: "Win with 5 assets", goal: 1, progress: (_p, rs) => wins(rs).filter((r) => r.weights.filter((w: number) => w > 0).length === 5).length },
   { id: "all-in", name: "Conviction", condition: "Win with one asset at 60% or more", goal: 1, progress: (_p, rs) => wins(rs).filter((r) => Math.max(...r.weights) >= 60).length },

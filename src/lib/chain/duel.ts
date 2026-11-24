@@ -1,7 +1,7 @@
 // Baskets, commitments and a readable view of the on-chain Duel account.
 import { sha256 } from "@noble/hashes/sha2";
 import { PublicKey } from "@solana/web3.js";
-import { ASSETS, KIND, MUT, SCORE_PER_PCT, SYMBOLS } from "./constants";
+import { ASSETS, FREEZE_SECONDS, KIND, MUT, MUTATION_AT, SCORE_PER_PCT, SYMBOLS } from "./constants";
 
 export interface Leg {
   symbol: string;
@@ -89,7 +89,6 @@ export interface DuelView {
   forfeit: boolean;
 }
 
-const MUT_AT = [15, 30, 45];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function duelView(d: any): DuelView {
@@ -112,13 +111,13 @@ export function duelView(d: any): DuelView {
           m.kind === KIND.DOUBLE
             ? `${symbol} weight x2`
             : m.kind === KIND.FREEZE
-              ? `${symbol} frozen for 30s`
+              ? `${symbol} frozen for ${FREEZE_SECONDS}s`
               : symbol === other
                 ? `Swap fizzles: both hold ${symbol}`
                 : `Swap: ${symbol} <-> ${other}`;
         return { index: i, state: "applied", kind, at: Number(m.at.toString()), symbol, other, label };
       }
-      return { index: i, state: m.state === MUT.REQUESTED ? "drawing" : "hidden", at: MUT_AT[i] };
+      return { index: i, state: m.state === MUT.REQUESTED ? "drawing" : "hidden", at: MUTATION_AT[i] };
     },
   );
   return {

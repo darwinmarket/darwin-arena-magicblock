@@ -4,7 +4,7 @@
 
 [Darwin](https://app.darwin.market) sells crypto baskets. Arena is the game version:
 two players each draft a basket of Solana assets, the basket that performs best
-over five minutes of live prices takes the pot. Mutations drawn by verifiable
+over one minute of live prices takes the pot. Mutations drawn by verifiable
 randomness shake the duel up; each player can rebalance twice.
 
 Built for MagicBlock's Solana Blitz (Entertainment Finance). Everything runs on
@@ -25,7 +25,7 @@ Built for MagicBlock's Solana Blitz (Entertainment Finance). Everything runs on
  delegate_duel ───────────────────────────────▶   reveal_basket  (session key, no fee)
                                                   start_duel     reads 6 Pyth Lazer feeds,
                                                                  ScheduleTask: tick every 1 s
-                                                  tick ×300      crank, on chain, free
+                                                  tick ×60       crank, on chain, free
                                                   request_mutation ─ ephemeral VRF ─▶ apply_mutation
                                                   rebalance ×2   (session key, no fee)
                                                   finish_duel    commit + undelegate
@@ -38,7 +38,7 @@ Built for MagicBlock's Solana Blitz (Entertainment Finance). Everything runs on
 
 | Feature | Where | What it does here |
 |---|---|---|
-| **Ephemeral Rollups** | `delegate_duel`, `finish_duel` | The `Duel` PDA is delegated once both baskets are committed; the whole live duel (reveals, 300 ticks, mutations, rebalances) runs on the ER at zero fee; `commit_and_undelegate` brings it back for settlement. Money never leaves Solana. |
+| **Ephemeral Rollups** | `delegate_duel`, `finish_duel` | The `Duel` PDA is delegated once both baskets are committed; the whole live duel (reveals, 60 ticks, mutations, rebalances) runs on the ER at zero fee; `commit_and_undelegate` brings it back for settlement. Money never leaves Solana. |
 | **Cranks** (`ScheduleTask`) | `start_duel` → `tick` | The duel ticks itself every second on the ER. No off-chain ticking loop. Task ids are derived per duel (they are validator-global on 1.1.1). |
 | **Real-time price oracle** | `tick`, `start_duel`, the Draft market | MagicBlock's Pyth Lazer feeds (`PriCems5…`), read on the ER for SOL, JUP, BONK, WIF, JTO, PYTH. Addresses pinned, owner checked, positive price, staleness bound (a stale asset is held still for that tick). |
 | **Ephemeral VRF** | `request_mutation` → `apply_mutation` | Each of the three mutations is drawn by a VRF request made inside the ER at its second (60 / 150 / 240 s): kind and asset(s). The callback is only accepted from the VRF program's scoped identity. Nobody knows a mutation before it lands. |
@@ -160,7 +160,7 @@ transactions, so it holds across serverless instances) and limits requests per I
 |---|---|---|
 | Game rules (Rust unit) | `npm run chain:test` | 12 / 12 |
 | Base layer on a local validator | `npm run test:local` | 14 / 14 (faucet + cooldown, tables, escrow, session-key commits, refusals, refunds) |
-| Devnet + ER, two session-keyed players | `npm run e2e` | full duel: 301 crank ticks in 300 s, 3 VRF mutations, rebalance, commit + undelegate, settle |
+| Devnet + ER, two session-keyed players | `npm run e2e` | full duel: 61 crank ticks in 60 s, 3 VRF mutations, rebalance, commit + undelegate, settle |
 | Browser, keeper's bot | `npx tsx ops/test/ui.ts` | full duel through the UI in 328 s, 0 console errors |
 | Browser, practice bot, no server | `PRACTICE=1 npx tsx ops/test/ui.ts` | full duel through the UI in 331 s, 0 console errors |
 | Hosted site, empty wallet | `APP_URL=https://darwin.market/arena-magicblock ONBOARD=1 PRACTICE=1 npx tsx ops/test/ui.ts` | SOL from the site faucet with no click, test USDC + stake in one approval, full duel, settled in 333 s, spectator page, 0 console errors |

@@ -8,7 +8,7 @@ use the practice bot).
 ## 0:00 – 0:20 · The pitch
 
 "Darwin sells crypto baskets. Darwin Arena is the game: two players, two baskets,
-five minutes of live markets, winner takes the pot. Everything you're about to see
+one minute of live markets, winner takes the pot. Everything you're about to see
 runs on Solana devnet and a MagicBlock Ephemeral Rollup."
 
 Show the home screen, click **Play**.
@@ -41,7 +41,7 @@ Show the home screen, click **Play**.
 - Optional: in the terminal, `npx tsx ops/inspect.ts <id>`: base layer says
   `owner delegation`, the ER has the live state.
 
-(Cut to the end of the 5 minutes.)
+(Cut to the finish line, one minute in.)
 
 ## 2:20 – 2:50 · Settlement
 
