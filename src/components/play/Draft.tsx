@@ -5,7 +5,7 @@
 // · marché en cartes de jeu. "Lock basket" = commit on-chain de sha256(panier + sel),
 // signé par la clé de session : l'adversaire ne voit rien avant le reveal sur le rollup.
 import { useEffect, useMemo, useState } from "react";
-import { GiPadlock, GiScales } from "react-icons/gi";
+import { GiExitDoor, GiPadlock, GiScales } from "react-icons/gi";
 import { GameTimer, TimeDrain } from "@/components/game/GameTimer";
 import { TokenCoin } from "@/components/game/TokenCoin";
 import { Panel } from "@/components/ui";
@@ -13,6 +13,8 @@ import { useArena, type LiveDuel } from "@/lib/chain/ArenaProvider";
 import { friendlyError } from "@/lib/chain/errors";
 import { useMarketHistory, usePlayer, usePrices } from "@/lib/chain/hooks";
 import { ASSETS, DRAFT_SECONDS } from "@/lib/mock";
+
+const DRAFT_GRACE = 30; // chain/programs/darwin-arena/src/lib.rs
 import { formatPrice, sparkline, TOKEN_CLASSES, TOKENS, type TokenClass } from "@/lib/tokens";
 import type { Asset, BasketLeg } from "@/lib/types";
 
@@ -42,7 +44,9 @@ export function Draft({
   initial?: BasketLeg[];
   live?: LiveDuel | null;
 }) {
-  const { commitBasket, currentDuel } = useArena();
+  const { commitBasket, currentDuel, abandonDraft } = useArena();
+  const [leaving, setLeaving] = useState(false);
+  const [now, setNow] = useState(() => Math.floor(Date.now() / 1000));
   const prices = usePrices();
   const history = useMarketHistory();
   const [legs, setLegs] = useState<BasketLeg[]>(initial);
@@ -60,20 +64,40 @@ export function Draft({
   const deadline = live?.view.draftDeadline ?? 0;
 
   useEffect(() => {
-    const t = setInterval(
-      () => setLeft((s) => (deadline ? Math.max(0, deadline - Math.floor(Date.now() / 1000)) : Math.max(0, s - 1))),
-      1000,
-    );
+    const t = setInterval(() => {
+      setNow(Math.floor(Date.now() / 1000));
+      setLeft((s) => (deadline ? Math.max(0, deadline - Math.floor(Date.now() / 1000)) : Math.max(0, s - 1)));
+    }, 1000);
     // l'adversaire drafte en caché : on ne voit que son engagement on-chain
-    const o = setInterval(() => setOppPicks((p) => Math.min(4, p + 1)), 6500);
+    const o = setInterval(() => setOppPicks((p) => Math.min(4, p + 1)), 900);
     return () => {
       clearInterval(t);
       clearInterval(o);
     };
   }, [deadline]);
 
+  // Le programme autorise l'annulation 30 s après la fin du draft (DRAFT_GRACE) : les deux mises reviennent.
+  const refundIn = deadline ? Math.max(0, deadline + DRAFT_GRACE + 2 - now) : 0;
+  const stuck = !!deadline && left === 0 && !(locked && rivalLocked);
+  const leave = async () => {
+    if (currentDuel === null) return;
+    setLeaving(true);
+    setError(null);
+    try {
+      await abandonDraft(currentDuel);
+    } catch (e) {
+      setError(friendlyError(e));
+    } finally {
+      setLeaving(false);
+    }
+  };
+
   const lock = async () => {
-    if (currentDuel === null) return onLocked(legs);
+    // Plus de lock silencieux : sans course suivie, on le dit au joueur.
+    if (currentDuel === null || !live || live.mySlot === null) {
+      setError("This race is not linked to your wallet any more. Go back to the table and start a new race.");
+      return;
+    }
     setLocking(true);
     setError(null);
     try {
@@ -107,6 +131,8 @@ export function Draft({
           price: prices[a.symbol] ?? a.price,
           change24h: history[a.symbol]?.change24h ?? a.change24h,
           closes: history[a.symbol]?.closes,
+          // Pas de faux chiffres : tant que le prix live n'est pas arrivé, la carte affiche un squelette.
+          loading: prices[a.symbol] === undefined || history[a.symbol] === undefined,
         }),
       ),
     [filter, prices, history],
@@ -127,7 +153,7 @@ export function Draft({
           <div className="font-display text-xs font-semibold uppercase tracking-[0.3em] text-[#2de2ff]">Draft phase</div>
           <h1 className="font-display text-3xl font-bold uppercase">Build your basket</h1>
           <p className="mt-1 text-sm text-white/60">
-            Pick {MIN_LEGS} to {MAX_LEGS} assets and split 100% between them. Your rival only sees your basket when the duel starts.
+            Pick {MIN_LEGS} to {MAX_LEGS} assets and split 100% between them. Your rival only sees your basket when the race starts.
           </p>
         </div>
         <GameTimer left={left} total={DRAFT_SECONDS} label="Draft ends in" />
@@ -207,15 +233,37 @@ export function Draft({
           <GiPadlock className="h-6 w-6" />
           {locked
             ? rivalLocked
-              ? "Locked · sending the duel to the rollup…"
-              : "Locked · waiting for your rival"
+              ? "Locked, sending the duel to the rollup…"
+              : "Locked, waiting for your rival"
             : locking
               ? "Locking (on-chain commitment)…"
               : valid
                 ? "Lock basket"
                 : lockHint}
         </button>
-        {error && <p className="mt-2 text-center text-sm text-[#ff3b5c]">{error}</p>}
+        {error && (
+          <div className="arena-pop mt-3 rounded-xl border border-[#ff3b5c]/50 bg-[#ff3b5c]/10 px-4 py-3 text-center font-display text-sm font-semibold text-[#ff8aa0]">
+            {error}
+          </div>
+        )}
+        {stuck && (
+          <div className="mt-4 flex flex-col items-center gap-3 rounded-2xl border border-[#ff3b5c]/40 bg-[#ff3b5c]/10 p-4 text-center sm:flex-row sm:text-left">
+            <div className="flex-1">
+              <div className="font-display text-sm font-bold uppercase tracking-wider text-[#ff8aa0]">Your rival never locked in</div>
+              <div className="text-sm text-white/60">
+                {refundIn > 0 ? `You can leave in ${refundIn}s, both stakes go back to their owners.` : "Leave now, both stakes go back to their owners."}
+              </div>
+            </div>
+            <button
+              disabled={refundIn > 0 || leaving}
+              onClick={leave}
+              className="flex items-center gap-2 rounded-xl border border-[#ff3b5c] bg-[#ff3b5c]/15 px-5 py-2.5 font-display text-sm font-bold uppercase tracking-wider text-white transition hover:bg-[#ff3b5c]/30 disabled:opacity-50"
+            >
+              <GiExitDoor className="h-5 w-5" />
+              {leaving ? "Leaving…" : refundIn > 0 ? `Leave in ${refundIn}s` : "Leave and refund"}
+            </button>
+          </div>
+        )}
       </Panel>
 
       {/* ---------- Marché ---------- */}
@@ -286,7 +334,7 @@ function OpponentDrafting({ picks, name, locked }: { picks: number; name: string
           </div>
         ))}
       </div>
-      <div className="mt-1 text-xs text-white/40">{locked ? "Commitment on chain · hidden until the reveal" : "Hidden until the duel starts"}</div>
+      <div className="mt-1 text-xs text-white/40">{locked ? "Locked on chain, hidden until the race starts" : "Hidden until the race starts"}</div>
     </div>
   );
 }
@@ -374,7 +422,7 @@ function TokenCard({
   full,
   onClick,
 }: {
-  asset: Asset & { closes?: number[] };
+  asset: Asset & { closes?: number[]; loading?: boolean };
   slot: number;
   full: boolean;
   onClick: () => void;
@@ -420,7 +468,14 @@ function TokenCard({
       </div>
 
       <div className="mt-3 flex items-end justify-between">
-        <span className="font-mono text-lg font-semibold">{formatPrice(asset.price)}</span>
+        {asset.loading ? (
+          <span className="h-6 w-24 animate-pulse rounded-md bg-white/10" />
+        ) : (
+          <span className="font-mono text-lg font-semibold">{formatPrice(asset.price)}</span>
+        )}
+        {asset.loading ? (
+          <span className="h-6 w-14 animate-pulse rounded-md bg-white/10" />
+        ) : (
         <span
           className={`rounded-md px-1.5 py-0.5 font-display text-sm font-bold ${
             up ? "bg-[#3dff8a]/10 text-[#3dff8a]" : "bg-[#ff3b5c]/10 text-[#ff3b5c]"
@@ -428,8 +483,13 @@ function TokenCard({
         >
           {up ? "▲" : "▼"} {Math.abs(asset.change24h).toFixed(1)}%
         </span>
+        )}
       </div>
-      <Sparkline symbol={asset.symbol} change={asset.change24h} closes={asset.closes} />
+      {asset.loading ? (
+        <div className="h-11 animate-pulse rounded-md bg-white/[0.04]" />
+      ) : (
+        <Sparkline symbol={asset.symbol} change={asset.change24h} closes={asset.closes} />
+      )}
 
       {/* jauge de volatilité */}
       <div className="mt-2 flex items-center justify-between">

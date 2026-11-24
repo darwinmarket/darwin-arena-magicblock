@@ -62,7 +62,7 @@ export default function Home() {
           className="arena-rise mt-4 max-w-md text-base text-white/75 drop-shadow sm:text-lg"
           style={{ animationDelay: "160ms" }}
         >
-          Draft a basket of tokens, duel a real rival for ten minutes, and the fittest basket takes the pot.
+          Draft a basket of tokens, race a real rival for one minute, and the fittest basket takes the pot.
         </p>
 
         <div className="arena-rise mt-8 flex w-full max-w-md flex-col gap-4" style={{ animationDelay: "240ms" }}>
