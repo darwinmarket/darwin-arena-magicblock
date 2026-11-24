@@ -13,8 +13,8 @@ pub const HISTORY: usize = 8;
 
 pub const MUTATIONS: usize = 3;
 /// Seconds into the duel at which each mutation may be drawn.
-pub const MUTATION_AT: [i64; MUTATIONS] = [60, 150, 240];
-pub const FREEZE_SECONDS: i64 = 30;
+pub const MUTATION_AT: [i64; MUTATIONS] = [15, 30, 45];
+pub const FREEZE_SECONDS: i64 = 10;
 
 /// Score unit: 1e-9 of a fraction, so 10_000_000 is +1 %.
 pub const SCORE_ONE: i128 = 1_000_000_000;
@@ -504,7 +504,7 @@ mod tests {
         r[1] = 4;
         let m = d.draw_mutation(&r, 1150);
         assert_eq!(m.kind, KIND_FREEZE);
-        assert_eq!(d.frozen_until, 1180);
+        assert_eq!(d.frozen_until, 1160);
         assert!(d.weights[0][m.a as usize] > 0 || d.weights[1][m.a as usize] > 0);
         r[0] = 0;
         let m = d.draw_mutation(&r, 1240);
@@ -538,12 +538,12 @@ mod tests {
     #[test]
     fn ends_on_time_with_winner() {
         let mut d = live();
-        d.advance(&[110, 100, 100, 100, 100, 100], 1299);
+        d.advance(&[110, 100, 100, 100, 100, 100], 1059);
         assert_eq!(d.status, STATUS_LIVE);
-        d.advance(&[110, 100, 100, 100, 100, 100], 1300);
+        d.advance(&[110, 100, 100, 100, 100, 100], 1060);
         assert_eq!(d.status, STATUS_FINISHED);
         assert_eq!(d.winner, 0);
-        d.advance(&[200, 100, 100, 100, 100, 100], 1301); // no-op once finished
+        d.advance(&[200, 100, 100, 100, 100, 100], 1061); // no-op once finished
         assert_eq!(d.score[0], 5 * PCT);
     }
 
