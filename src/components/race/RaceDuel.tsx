@@ -13,7 +13,7 @@ import { BasketStrip, CarTag, Driver, FinishFlash, GapPill, ME, MutationBanner, 
 import { RaceScene, type RacePhase, type RaceState } from "@/components/race/RaceScene";
 import { useArena, type LiveDuel } from "@/lib/chain/ArenaProvider";
 import { MUTATION_AT } from "@/lib/chain/constants";
-import { toLegs, toWeights } from "@/lib/chain/duel";
+import { alignToLive, toLegs, toWeights } from "@/lib/chain/duel";
 import { friendlyError } from "@/lib/chain/errors";
 import { usePlayer } from "@/lib/chain/hooks";
 import { ASSETS, DUEL_SECONDS, MAX_REBALANCES } from "@/lib/mock";
@@ -215,7 +215,8 @@ export function RaceDuel({
             if (currentDuel === null) return;
             try {
               setError(null);
-              await sendRebalance(currentDuel, toWeights(b));
+              // a SWAP may have landed while the sheet was open: send over the live assets
+              await sendRebalance(currentDuel, toWeights(alignToLive(b, myBasket)));
             } catch (e) {
               setError(friendlyError(e));
             }

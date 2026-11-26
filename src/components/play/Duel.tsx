@@ -1,7 +1,8 @@
 "use client";
 
 // Pièces partagées du duel (l'écran de duel lui-même est la course : components/race/RaceDuel.tsx).
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { alignToLive } from "@/lib/chain/duel";
 import { GiChemicalDrop, GiCycle, GiPadlock, GiSnowflake1 } from "react-icons/gi";
 import type { IconType } from "react-icons";
 import { TokenCoin } from "@/components/game/TokenCoin";
@@ -61,6 +62,18 @@ export function RebalanceSheet({
   onConfirm: (b: BasketLeg[]) => void;
 }) {
   const [legs, setLegs] = useState(basket);
+  // A mutation (SWAP) changed the basket's assets while the sheet is open: follow it, keeping the
+  // player's edits on the assets that stayed.
+  const liveKey = basket.map((l) => l.symbol).sort().join(",");
+  const [swapped, setSwapped] = useState(false);
+  useEffect(() => {
+    setLegs((ls) => {
+      if (ls.map((l) => l.symbol).sort().join(",") === liveKey) return ls;
+      setSwapped(true);
+      return alignToLive(ls, basket);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [liveKey]);
   const total = legs.reduce((s, l) => s + l.weight, 0);
   const nudge = (symbol: string, d: number) =>
     setLegs((ls) => ls.map((x) => (x.symbol === symbol ? { ...x, weight: Math.max(5, Math.min(100, x.weight + d)) } : x)));
@@ -74,6 +87,11 @@ export function RebalanceSheet({
           <h3 className="font-display text-xl font-bold uppercase tracking-wider">Rebalance</h3>
           <span className={`font-display font-bold ${total === 100 ? "text-[#3dff8a]" : "text-[#ffc861]"}`}>{total}% of 100%</span>
         </div>
+        {swapped && (
+          <p className="mb-3 rounded-xl border border-[#b06bff]/40 bg-[#b06bff]/10 px-3 py-2 text-xs text-white/80">
+            A swap mutation just changed your basket: the new asset took the old one&apos;s weight.
+          </p>
+        )}
         {legs.map((l) => {
           const locked = frozen === l.symbol;
           return (
