@@ -19,6 +19,25 @@ export function toWeights(legs: Leg[]): number[] {
   return w;
 }
 
+/**
+ * Puts edited legs back on the live basket's assets: a SWAP mutation may have replaced an asset
+ * while the player was editing, and the chain only accepts a rebalance over the very same assets.
+ * Each leg whose asset left the basket takes the asset that came in (in order); a leg missing from
+ * the edit keeps its live weight.
+ */
+export function alignToLive(edited: Leg[], live: Leg[]): Leg[] {
+  const liveSyms = new Set(live.map((l) => l.symbol));
+  const editSyms = new Set(edited.map((l) => l.symbol));
+  const incoming = live.filter((l) => !editSyms.has(l.symbol)).map((l) => l.symbol);
+  const out: Leg[] = [];
+  for (const l of edited) {
+    if (liveSyms.has(l.symbol)) out.push(l);
+    else if (incoming.length) out.push({ symbol: incoming.shift()!, weight: l.weight });
+  }
+  for (const l of live) if (!out.some((o) => o.symbol === l.symbol)) out.push(l);
+  return out;
+}
+
 export function toLegs(weights: ArrayLike<number>): Leg[] {
   const legs: Leg[] = [];
   for (let i = 0; i < ASSETS.length; i++) if (weights[i] > 0) legs.push({ symbol: SYMBOLS[i], weight: weights[i] });
