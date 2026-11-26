@@ -5,7 +5,7 @@
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 import Link from "next/link";
-import { useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { GiCash, GiFuelTank, GiPowerButton, GiWallet } from "react-icons/gi";
 import { DarwinMark } from "@/components/brand/DarwinMark";
 import { Corners, GLASS } from "@/components/game/Hud";
@@ -45,13 +45,13 @@ function DockAction({
   );
 }
 
+const FAUCET_USDC = 1000;
+
 export function TopBar() {
   const { connected, disconnect } = useWallet();
   const { setVisible } = useWalletModal();
   const { usdc, sol, claimFaucet, requestSol, solStatus, ready } = useArena();
   const { me } = useProfile();
-  const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
   const [note, setNote] = useState<{ text: string; ok: boolean } | null>(null);
   const toast = (text: string, ok: boolean) => {
     setNote({ text, ok });
@@ -59,19 +59,20 @@ export function TopBar() {
   };
   const lowSol = sol !== null && sol < 0.03;
 
+  // Each click shows +1000 at once (expected balance); the claim lands in a slot or two and the real
+  // balance takes over once it has caught up. Clicks may stack.
+  const [incoming, setIncoming] = useState<number | null>(null);
+  useEffect(() => {
+    if (incoming !== null && usdc !== null && usdc >= incoming - 1e-6) setIncoming(null);
+  }, [incoming, usdc]);
   const faucet = async () => {
-    setBusy(true);
-    setMsg(null);
+    if (usdc !== null) setIncoming((t) => (t ?? usdc) + FAUCET_USDC);
     try {
       await claimFaucet();
-      setMsg("+100 USDC");
-      toast("+100 test USDC in your wallet", true);
     } catch (e) {
       console.error("faucet", e);
+      setIncoming(null);
       toast(friendlyError(e), false);
-    } finally {
-      setBusy(false);
-      setTimeout(() => setMsg(null), 4000);
     }
   };
 
@@ -95,13 +96,13 @@ export function TopBar() {
               </DockAction>
             )}
             <DockAction
-              onClick={faucet}
-              disabled={busy || !ready}
-              title="Mint 100 test USDC (once every 10 minutes)"
+              onClick={() => void faucet()}
+              disabled={!ready}
+              title="1000 test USDC, sent by the site: no wallet prompt, no limit"
               color="#3dff8a"
               icon={<GiCash />}
             >
-              <span className="hidden sm:inline">{busy ? "Minting…" : msg === "+100 USDC" ? msg : "Test USDC"}</span>
+              <span className="hidden sm:inline">+{FAUCET_USDC} USDC</span>
             </DockAction>
 
             <span className="mx-1 h-7 w-px bg-white/10" />
@@ -109,10 +110,18 @@ export function TopBar() {
             {/* Soldes */}
             <div className="flex items-center gap-4 px-3">
               <div className="flex flex-col leading-none">
-                <span className="font-display text-[9px] font-semibold uppercase tracking-[0.25em] text-white/40">USDC</span>
-                <span className="mt-1 min-w-[3.2rem] font-display text-base font-bold tabular-nums text-[#ffc861] drop-shadow-[0_0_8px_#ffc86166]">
-                  {usdc === null ? "…" : usdc.toFixed(2)}
+                <span className="font-display text-[9px] font-semibold uppercase tracking-[0.25em] text-white/40">
+                  {incoming !== null ? "Incoming…" : "USDC"}
                 </span>
+                {incoming !== null ? (
+                  <span className="mt-1 min-w-[3.2rem] animate-pulse font-display text-base font-bold tabular-nums text-[#3dff8a] drop-shadow-[0_0_8px_#3dff8a88]">
+                    {incoming.toFixed(2)}
+                  </span>
+                ) : (
+                  <span className="mt-1 min-w-[3.2rem] font-display text-base font-bold tabular-nums text-[#ffc861] drop-shadow-[0_0_8px_#ffc86166]">
+                    {usdc === null ? "…" : usdc.toFixed(2)}
+                  </span>
+                )}
               </div>
               {(
                 <div className="hidden flex-col leading-none sm:flex">

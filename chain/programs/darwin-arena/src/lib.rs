@@ -52,8 +52,8 @@ pub const DECIMALS: u8 = 6;
 pub const ONE_USDC: u64 = 1_000_000;
 /// Stake per table, in whole USDC: Rookie Pit, The Arena, High Rollers.
 pub const STAKES: [u64; 3] = [1, 5, 20];
-pub const FAUCET_AMOUNT: u64 = 100 * ONE_USDC;
-pub const FAUCET_COOLDOWN: i64 = 10 * 60;
+pub const FAUCET_AMOUNT: u64 = 1_000 * ONE_USDC;
+pub const FAUCET_COOLDOWN: i64 = 0; // test money: claim as often as you like
 pub const RAKE_BPS: u64 = 500;
 
 pub const DRAFT_SECONDS: i64 = 60;
@@ -117,7 +117,7 @@ pub mod darwin_arena {
         Ok(())
     }
 
-    /// Devnet faucet: 100 test USDC, once every 10 minutes per wallet.
+    /// Devnet faucet: 1000 test USDC per claim, no limit (test money).
     pub fn faucet(ctx: Context<Faucet>) -> Result<()> {
         let now = Clock::get()?.unix_timestamp;
         let claim = &mut ctx.accounts.claim;
@@ -133,6 +133,22 @@ pub mod darwin_arena {
             &ctx.accounts.token_program,
             &ctx.accounts.usdc_mint,
             &ctx.accounts.user_usdc,
+            &ctx.accounts.config.to_account_info(),
+            FAUCET_AMOUNT,
+            seeds,
+        )
+    }
+
+    /// Devnet faucet, sent for someone: anyone (the site's server) pays the fee and 1000 test USDC
+    /// land in `recipient_usdc`, so the player gets them without a wallet prompt. Test money, no
+    /// limit.
+    pub fn faucet_to(ctx: Context<FaucetTo>) -> Result<()> {
+        token_balance(&ctx.accounts.recipient_usdc, &ctx.accounts.config.usdc_mint, None)?;
+        let seeds: &[&[u8]] = &[CONFIG_SEED, &[ctx.accounts.config.bump]];
+        token_mint_to(
+            &ctx.accounts.token_program,
+            &ctx.accounts.usdc_mint,
+            &ctx.accounts.recipient_usdc,
             &ctx.accounts.config.to_account_info(),
             FAUCET_AMOUNT,
             seeds,
@@ -683,6 +699,22 @@ pub struct InitTable<'info> {
     #[account(init, payer = admin, space = 8 + Table::INIT_SPACE, seeds = [TABLE_SEED, &[tier]], bump)]
     pub table: Account<'info, Table>,
     pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct FaucetTo<'info> {
+    pub payer: Signer<'info>,
+    #[account(seeds = [CONFIG_SEED], bump = config.bump)]
+    pub config: Account<'info, Config>,
+    /// CHECK: the config's mint.
+    #[account(mut, address = config.usdc_mint @ ArenaError::BadMint)]
+    pub usdc_mint: UncheckedAccount<'info>,
+    /// CHECK: any token account of the test-USDC mint (checked in the handler).
+    #[account(mut)]
+    pub recipient_usdc: UncheckedAccount<'info>,
+    /// CHECK: address-checked SPL Token program.
+    #[account(address = TOKEN_PROGRAM_ID)]
+    pub token_program: UncheckedAccount<'info>,
 }
 
 #[derive(Accounts)]

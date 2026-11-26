@@ -66,8 +66,8 @@ async function play(page: Page, burner: Keypair, errors: string[]) {
     step("devnet SOL received from the site's faucet, no click");
   } else {
     await page.getByText("+ Test USDC").click({ timeout: 60_000 });
-    await page.getByText(/100\.00 USDC/).waitFor({ timeout: 60_000 });
-    step("faucet: 100 test USDC");
+    await page.getByText(/1000\.00 USDC/).waitFor({ timeout: 60_000 });
+    step("faucet: 1000 test USDC");
   }
   await shot(page, "01-lobby");
 

@@ -11,7 +11,7 @@ const SYSTEM_AND_ANCHOR: Record<number, string> = {
 };
 
 const FRIENDLY: Record<string, string> = {
-  FaucetCooldown: "Test USDC faucet: wait 10 minutes between claims",
+  FaucetCooldown: "Test USDC faucet busy, try again",
   TableBusy: "Someone just sat at this table, try again",
   NotWaiting: "That duel was just taken, try again",
   SelfDuel: "You are already waiting at this table",

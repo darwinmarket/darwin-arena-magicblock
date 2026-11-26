@@ -84,6 +84,13 @@ export const ix = {
       })
       .instruction(),
 
+  /** 1000 test USDC into `recipientUsdc`, the fee paid by `payer` (the site's server): no wallet prompt. */
+  faucetTo: (p: ArenaProgram, payer: PublicKey, usdcMint: PublicKey, recipientUsdc: PublicKey) =>
+    p.methods
+      .faucetTo()
+      .accountsPartial({ payer, config: configPda(), usdcMint, recipientUsdc, tokenProgram: TOKEN_PROGRAM_ID })
+      .instruction(),
+
   initProfile: (p: ArenaProgram, user: PublicKey, name: string) =>
     p.methods
       .initProfile(name)

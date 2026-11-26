@@ -217,11 +217,28 @@ export function ArenaProvider({ children }: { children: ReactNode }) {
 
   const claimFaucet = useCallback(async () => {
     if (!publicKey) throw new Error("Connect a wallet first");
+    // The site's server sends the 1000 test USDC (program `faucet_to`): no wallet prompt.
+    try {
+      const r = await fetch(`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/usdc`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ wallet: publicKey.toBase58() }),
+      });
+      const j = (await r.json()) as { signature?: string; error?: string };
+      if (r.ok && j.signature) {
+        await refresh();
+        return j.signature;
+      }
+      console.warn("server faucet", j.error);
+    } catch (e) {
+      console.warn("server faucet", e);
+    }
+    // Fallback: the wallet claims itself.
     if (!config) throw new Error("Arena config not loaded yet, retry in a second");
     const ata = ataOf(publicKey, config.mint);
     const sig = await sendWallet(
       [createAssociatedTokenAccountIdempotentInstruction(publicKey, ata, publicKey, config.mint), await ix.faucet(program, publicKey, config.mint, ata)],
-      "Claim 100 test USDC",
+      "Claim 1000 test USDC",
     );
     await refresh();
     return sig;

@@ -72,7 +72,7 @@ so that context comes from Binance's public klines mirror through a cached route
 
 | | Solana (base) | Ephemeral Rollup | Off-chain |
 |---|---|---|---|
-| Test USDC, faucet, escrow, payouts | ✓ | | |
+| Test USDC, faucet (1000 per claim, no limit), escrow, payouts | ✓ | | |
 | Tables (matchmaking queue) | ✓ | | |
 | Basket commitments, session authorisation | ✓ | | |
 | Reveal, ticks, scores, mutations, rebalances | | ✓ | |
@@ -80,6 +80,7 @@ so that context comes from Binance's public klines mirror through a cached route
 | Trophies: winning baskets minted by their winner (`mint_trophy`) | ✓ | | |
 | Badges, leaderboard: computed from profiles and history | read | | front |
 | Devnet SOL faucet for new wallets (`/api/faucet`, rate limited) | | | ✓ (Next.js route) |
+| Test-USDC sender, no wallet prompt (`/api/usdc` → `faucet_to`) | | | ✓ (Next.js route) |
 | Keeper: delegate / start / VRF trigger / finish / settle if nobody else did, bot opponent | | | ✓ (`ops/keeper.ts`) |
 
 Every instruction the keeper sends is permissionless and also sent by the front, so
@@ -119,7 +120,9 @@ npm run keeper              # optional: bot opponent + keeper (needs keys, see b
 Open http://localhost:3040, connect Phantom (devnet) or pick **Burner (devnet)**. A wallet
 without devnet SOL gets 0.08 SOL from the site's faucet automatically (once a day per
 wallet; locally it needs `FAUCET_SECRET_KEY`, otherwise fund the wallet yourself). Pick a
-table, **Find a match**: the first stake transaction also mints 100 test USDC.
+table, **Find a match**: the first stake transaction also mints 1000 test USDC. More any time
+with **+1000 USDC** in the top bar: the site's server sends them (program `faucet_to`), no
+wallet prompt, no limit.
 
 Nobody else around? With the keeper running, its bot sits down after 8 s. Without
 it, after 10 s alone the lobby offers **Play the practice bot**: a second player that
