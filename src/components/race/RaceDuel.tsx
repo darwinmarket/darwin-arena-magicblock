@@ -57,8 +57,13 @@ export function RaceDuel({
       ? { at: m.at, kind: m.kind!, label: m.label!, drawn: true }
       : { at: MUTATION_AT[i] ?? 0, kind: "DOUBLE", label: "Hidden mutation", drawn: false },
   );
-  // La course se termine à la ligne (1 minute au front) ou quand la chaîne clôt le duel.
-  const over = (!!view && view.status >= 3) || (startTs > 0 && elapsed >= total);
+  // The result is the chain's: it freezes when the rollup closes the duel (final tick, final
+  // scores), not when the browser's clock reaches the line, whose last scores may be a tick or two
+  // old and swap the order. Safety net: 15 s past the line without the close, take what we have.
+  const closed = !!view && view.status >= 3;
+  const overdue = startTs > 0 && now - startTs >= total + 15;
+  const over = closed || overdue;
+  const photoFinish = startTs > 0 && elapsed >= total && !over;
 
   // Cinématique d'entrée : on ne joue le 3 2 1 que si le duel vient vraiment de commencer.
   const [phase, setPhase] = useState<RacePhase>("intro");
@@ -218,6 +223,11 @@ export function RaceDuel({
         />
       )}
 
+      {photoFinish && (
+        <div className="pointer-events-none fixed inset-x-0 top-1/3 z-30 text-center font-display text-2xl font-bold uppercase italic tracking-widest text-white drop-shadow-[0_0_18px_#2de2ff] animate-pulse">
+          Photo finish… the chain decides
+        </div>
+      )}
       {phase === "done" && <FinishFlash win={(outcome.current ? outcome.current.myScore - outcome.current.oppScore : diff) >= 0} />}
 
     </div>
