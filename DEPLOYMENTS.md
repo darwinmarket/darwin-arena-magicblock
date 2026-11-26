@@ -26,3 +26,7 @@ While a duel is live its account reads as owned by the delegation program
 2026-11-24: program upgraded in place to one minute duels (`DUEL_SECONDS` 60, mutations at
 15 / 30 / 45 s, freeze 10 s), to match the race front end. Same program id and accounts.
 e2e duel #3337: 61 ticks in 60 s, 3 VRF mutations, settled.
+
+2026-11-26: program upgraded in place: faucet gives 1000 test USDC per claim with no cooldown,
+and a new `faucet_to` instruction lets anyone (the site's server) pay the fee and send them to a
+player's token account, so the top bar's **+1000 USDC** needs no wallet prompt. Same program id.

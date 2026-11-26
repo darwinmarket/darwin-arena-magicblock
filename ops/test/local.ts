@@ -3,7 +3,7 @@
 //   npm run test:local   (starts solana-test-validator with the program and
 //                         MagicBlock's session-keys program, runs this, stops it)
 //
-// Covers everything that lives on Solana: setup, faucet and its cooldown,
+// Covers everything that lives on Solana: setup, faucet (no limit),
 // profiles, the table queue, stake escrow, commitments by wallet and by session
 // key (and the refusals), cancellation refunds. The rollup half (reveal, ticks,
 // VRF, finish, settle) needs a real ER and is covered by ops/e2e.ts on devnet.
@@ -66,18 +66,19 @@ async function main() {
   const balance = async (k: PublicKey) => Number((await conn.getTokenAccountBalance(k)).value.amount) / 1e6;
 
   console.log("\nbase layer");
-  await it("faucet mints 100 test USDC", async () => {
+  await it("faucet mints 1000 test USDC", async () => {
     for (const k of [alice, bob]) {
       await send(conn, [
         createAssociatedTokenAccountIdempotentInstruction(k.publicKey, usdc(k.publicKey), k.publicKey, mint),
         await ix.faucet(program, k.publicKey, mint, usdc(k.publicKey)),
       ], [k]);
     }
-    assert.equal(await balance(usdc(alice.publicKey)), 100);
+    assert.equal(await balance(usdc(alice.publicKey)), 1000);
   });
 
-  await it("faucet refuses a second claim within the cooldown", async () => {
-    await rejects(send(conn, [await ix.faucet(program, alice.publicKey, mint, usdc(alice.publicKey))], [alice]), "FaucetCooldown");
+  await it("faucet has no limit: a second claim right away works", async () => {
+    await send(conn, [await ix.faucet(program, alice.publicKey, mint, usdc(alice.publicKey))], [alice]);
+    assert.equal(await balance(usdc(alice.publicKey)), 2000);
   });
 
   await it("profiles are created with a name", async () => {
@@ -91,7 +92,7 @@ async function main() {
     await send(conn, [await ix.openDuel(program, alice.publicKey, 1, duelId, usdc(alice.publicKey), vault)], [alice]);
     const t = await program.account.table.fetch(tablePda(1));
     assert(t.waiting.equals(duelPda(duelId)));
-    assert.equal(await balance(usdc(alice.publicKey)), 95);
+    assert.equal(await balance(usdc(alice.publicKey)), 1995);
     assert.equal(await balance(vault), 5);
   });
 

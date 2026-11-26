@@ -417,7 +417,7 @@ export type DarwinArena = {
     {
       "name": "faucet",
       "docs": [
-        "Devnet faucet: 100 test USDC, once every 10 minutes per wallet."
+        "Devnet faucet: 1000 test USDC per claim, no limit (test money)."
       ],
       "discriminator": [
         0,
@@ -491,6 +491,61 @@ export type DarwinArena = {
         {
           "name": "systemProgram",
           "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "faucetTo",
+      "docs": [
+        "Devnet faucet, sent for someone: anyone (the site's server) pays the fee and 1000 test USDC",
+        "land in `recipient_usdc`, so the player gets them without a wallet prompt. Test money, no",
+        "limit."
+      ],
+      "discriminator": [
+        76,
+        231,
+        180,
+        68,
+        247,
+        194,
+        237,
+        146
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "signer": true
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "usdcMint",
+          "writable": true
+        },
+        {
+          "name": "recipientUsdc",
+          "writable": true
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         }
       ],
       "args": []
