@@ -4,7 +4,8 @@
 // (and no keeper bot) sits down at the table. It is a real second player: its
 // own keypair (kept in localStorage), its own test USDC from the faucet, its own
 // on-chain profile; it stakes, commits, reveals on the rollup and rebalances once,
-// signing for itself. The player's wallet only funds its fees once.
+// signing for itself. Its fees come from the site's server (/api/bot), so seating it needs no
+// wallet prompt; the player's wallet funds it only if the server cannot.
 import { createAssociatedTokenAccountIdempotentInstruction } from "@solana/spl-token";
 import { Keypair, LAMPORTS_PER_SOL, SystemProgram, Transaction, type Connection, type TransactionInstruction } from "@solana/web3.js";
 import { useEffect, useRef } from "react";
@@ -52,8 +53,24 @@ async function sendAs(conn: Connection, ixs: TransactionInstruction[], signer: K
   throw new Error("practice bot: not confirmed");
 }
 
-/// Seat the practice bot in the duel waiting at the table. One wallet approval
-/// (its SOL), then the bot signs its own stake and commitment.
+/// Asks the site's server to top the bot's SOL up (no wallet prompt). True when it has enough.
+export async function fuelBot(base: Connection): Promise<boolean> {
+  const bot = botKeypair();
+  if ((await base.getBalance(bot.publicKey)) >= 0.012 * LAMPORTS_PER_SOL) return true;
+  try {
+    const r = await fetch(`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/bot`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ bot: bot.publicKey.toBase58() }),
+    });
+    return r.ok;
+  } catch {
+    return false;
+  }
+}
+
+/// Seat the practice bot in the duel waiting at the table: the server fuels it, then the bot signs
+/// its own stake and commitment. No wallet prompt (the wallet funds it only as a fallback).
 export async function summonPracticeBot(opts: {
   base: Connection;
   program: ArenaProgram;
@@ -64,6 +81,7 @@ export async function summonPracticeBot(opts: {
   const { base, program, fundWith, wallet, duelId } = opts;
   const bot = botKeypair();
   const config = await program.account.config.fetch(configPda());
+  await fuelBot(base);
   const lamports = await base.getBalance(bot.publicKey);
   if (lamports < 0.012 * LAMPORTS_PER_SOL) {
     await fundWith(
@@ -115,7 +133,7 @@ export function PracticeBotAutopilot({ erProgram }: { erProgram: ArenaProgram })
       once("reveal", async () => [await ix.revealBasket(erProgram, bot.publicKey, id, plan.weights, Uint8Array.from(plan.salt))]);
     }
     const elapsed = Math.floor(Date.now() / 1000) - v.startTs;
-    if (v.status === STATUS.LIVE && !plan.rebalanced && elapsed > 120) {
+    if (v.status === STATUS.LIVE && !plan.rebalanced && elapsed > 20) {
       // Shift up to 10 % from its worst asset to its best one.
       const w = [...v.weights[slot]];
       const legs = w.map((_, i) => i).filter((i) => w[i] > 0 && SYMBOLS[i] !== v.frozen);
