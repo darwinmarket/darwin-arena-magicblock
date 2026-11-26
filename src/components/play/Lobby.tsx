@@ -10,7 +10,10 @@ import type { IconType } from "react-icons";
 import { GiCrossedSwords, GiCrown, GiSprout } from "react-icons/gi";
 import { PlayerCard } from "@/components/PlayerCard";
 import { Panel } from "@/components/ui";
+import { PublicKey } from "@solana/web3.js";
 import { useArena, type LiveDuel } from "@/lib/chain/ArenaProvider";
+import { duelPda } from "@/lib/chain/pdas";
+import { fuelBot } from "@/lib/chain/practiceBot";
 import { friendlyError } from "@/lib/chain/errors";
 import { usePlayer } from "@/lib/chain/hooks";
 import { STAKES } from "@/lib/mock";
@@ -26,7 +29,7 @@ export function Lobby({ onMatched, live = null }: { onMatched: (stake: number) =
   const { me } = useProfile();
   const { connected } = useWallet();
   const { setVisible } = useWalletModal();
-  const { findMatch, cancelWaiting, summonBot, sol, solStatus, currentDuel, setCurrentDuel } = useArena();
+  const { findMatch, cancelWaiting, summonBot, sol, solStatus, currentDuel, setCurrentDuel, base, program, wallet } = useArena();
   const [summoning, setSummoning] = useState(false);
   const [stake, setStake] = useState(STAKES[1]);
   const [elapsed, setElapsed] = useState(0);
@@ -51,6 +54,27 @@ export function Lobby({ onMatched, live = null }: { onMatched: (stake: number) =
     return () => clearInterval(tick);
   }, [searching, found]);
 
+  // Warm the practice bot up as soon as the lobby opens: the server fuels it, so it can sit down
+  // the moment the stake lands.
+  useEffect(() => {
+    if (wallet) void fuelBot(base);
+  }, [wallet, base]);
+
+  // One click: stake, and if nobody was waiting at the table the practice bot sits down at once.
+  const autoBot = async (id: number) => {
+    const d = await program.account.duel.fetch(duelPda(id)).catch(() => null);
+    const rival = d ? (d.players as PublicKey[])[1] : null;
+    if (!d || (rival && !rival.equals(PublicKey.default))) return; // a real player was waiting
+    setSummoning(true);
+    try {
+      await summonBot(id);
+    } catch (e) {
+      setError(friendlyError(e));
+    } finally {
+      setSummoning(false);
+    }
+  };
+
   const find = async () => {
     if (!connected) return setVisible(true);
     setError(null);
@@ -59,7 +83,8 @@ export function Lobby({ onMatched, live = null }: { onMatched: (stake: number) =
     setPending(true);
     try {
       setElapsed(0);
-      await findMatch(stake);
+      const id = await findMatch(stake);
+      void autoBot(id);
     } catch (e) {
       setError(friendlyError(e));
       setCurrentDuel(null);
@@ -193,13 +218,18 @@ export function Lobby({ onMatched, live = null }: { onMatched: (stake: number) =
             )}
           </div>
         )}
-        {seat && !found && elapsed >= 10 && (
+        {seat && !found && summoning && (
+          <p className="mt-3 text-center font-display text-sm font-bold uppercase tracking-wider text-[#2de2ff] animate-pulse">
+            Practice bot is sitting down…
+          </p>
+        )}
+        {seat && !found && !summoning && (error || elapsed >= 20) && (
           <button
             onClick={practice}
             disabled={summoning}
             className="mt-3 w-full rounded-2xl border border-[#2de2ff]/40 bg-[#2de2ff]/10 py-3 font-display text-sm font-bold uppercase tracking-wider text-[#2de2ff] transition hover:bg-[#2de2ff]/20 disabled:opacity-50"
           >
-            {summoning ? "Practice bot is sitting down…" : "Nobody around? Play the practice bot"}
+            Practice bot did not show up? Call it again
           </button>
         )}
         {error && <p className="mt-3 text-center text-sm text-[#ff3b5c]">{error}</p>}
