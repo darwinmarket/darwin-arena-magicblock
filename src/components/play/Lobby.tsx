@@ -5,7 +5,7 @@
 // ou on en ouvre un. Un bot du keeper vient s'asseoir après quelques secondes.
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useWalletModal } from "@solana/wallet-adapter-react-ui";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { IconType } from "react-icons";
 import { GiCrossedSwords, GiCrown, GiSprout } from "react-icons/gi";
 import { PlayerCard } from "@/components/PlayerCard";
@@ -60,20 +60,25 @@ export function Lobby({ onMatched, live = null }: { onMatched: (stake: number) =
     if (wallet) void fuelBot(base);
   }, [wallet, base]);
 
-  // One click: stake, and if nobody was waiting at the table the practice bot sits down at once.
-  const autoBot = async (id: number) => {
-    const d = await program.account.duel.fetch(duelPda(id)).catch(() => null);
-    const rival = d ? (d.players as PublicKey[])[1] : null;
-    if (!d || (rival && !rival.equals(PublicKey.default))) return; // a real player was waiting
+  // One click: the moment our seat is on chain with nobody facing us, the practice bot sits down.
+  // No waiting for a human (a player already waiting at the table is matched by the stake itself),
+  // no button: driven by the seat itself, so it also covers a reload or a slow stake confirmation.
+  const summoned = useRef<number | null>(null);
+  const waitingId = seat && !found && seat.mySlot === 0 ? currentDuel : null;
+  useEffect(() => {
+    if (waitingId === null || summoned.current === waitingId) return;
+    summoned.current = waitingId;
     setSummoning(true);
-    try {
-      await summonBot(id);
-    } catch (e) {
-      setError(friendlyError(e));
-    } finally {
-      setSummoning(false);
-    }
-  };
+    setError(null);
+    summonBot(waitingId)
+      .catch(async (e) => {
+        // a human may have taken the seat in between: then there is nothing to report
+        const d = await program.account.duel.fetch(duelPda(waitingId)).catch(() => null);
+        const rival = d ? (d.players as PublicKey[])[1] : null;
+        if (!rival || rival.equals(PublicKey.default)) setError(friendlyError(e));
+      })
+      .finally(() => setSummoning(false));
+  }, [waitingId, summonBot, program]);
 
   const find = async () => {
     if (!connected) return setVisible(true);
@@ -83,8 +88,7 @@ export function Lobby({ onMatched, live = null }: { onMatched: (stake: number) =
     setPending(true);
     try {
       setElapsed(0);
-      const id = await findMatch(stake);
-      void autoBot(id);
+      await findMatch(stake);
     } catch (e) {
       setError(friendlyError(e));
       setCurrentDuel(null);
@@ -166,7 +170,7 @@ export function Lobby({ onMatched, live = null }: { onMatched: (stake: number) =
       </Panel>
 
       <Panel
-        title={found ? "Opponent found" : searching ? "Scanning the arena" : "Find an opponent"}
+        title={found ? "Opponent found" : searching ? "Your opponent is coming" : "Find an opponent"}
         right={
           searching && !found ? (
             <span className="font-display text-sm text-white/60">
@@ -198,7 +202,7 @@ export function Lobby({ onMatched, live = null }: { onMatched: (stake: number) =
               onClick={find}
               className="flex-1 rounded-2xl bg-gradient-to-r from-[#ff3fb4] via-[#ff6a3d] to-[#ffc861] py-4 font-display text-xl font-bold uppercase tracking-wider text-[#1a0612] shadow-[0_10px_40px_-10px_#ff3fb4] transition hover:brightness-110 disabled:opacity-60"
             >
-              {pending ? "Confirm in your wallet…" : searching ? "Searching…" : connected ? `Find a match for ${stake} USDC` : "Connect wallet to play"}
+              {pending && !seat ? "Confirm in your wallet…" : searching ? "Opponent sitting down…" : connected ? `Find a match for ${stake} USDC` : "Connect wallet to play"}
             </button>
             {seat && !found ? (
               <button
@@ -218,12 +222,7 @@ export function Lobby({ onMatched, live = null }: { onMatched: (stake: number) =
             )}
           </div>
         )}
-        {seat && !found && summoning && (
-          <p className="mt-3 text-center font-display text-sm font-bold uppercase tracking-wider text-[#2de2ff] animate-pulse">
-            Practice bot is sitting down…
-          </p>
-        )}
-        {seat && !found && !summoning && (error || elapsed >= 20) && (
+        {seat && !found && !summoning && (error || elapsed >= 15) && (
           <button
             onClick={practice}
             disabled={summoning}
@@ -258,7 +257,7 @@ function Radar({ active }: { active: boolean }) {
             />
           </div>
           <span className="relative font-display text-sm font-semibold uppercase tracking-widest text-[#2de2ff]">
-            Looking for a worthy rival…
+            Your rival is sitting down…
           </span>
         </>
       ) : (
