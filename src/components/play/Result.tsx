@@ -45,10 +45,14 @@ export function Result({
   const mySlot = live?.mySlot ?? 0;
   const rival: Player = usePlayer(view?.players[mySlot === 0 ? 1 : 0]) ?? { ...me, id: "rival", name: rivalName ?? "Rival" };
 
-  // Verdict de la course (la ligne d'arrivée à 1 minute).
-  const draw = Math.abs(outcome.myScore - outcome.oppScore) < 0.005;
-  const won = !draw && outcome.myScore > outcome.oppScore;
-  const gap = Math.abs(outcome.myScore - outcome.oppScore);
+  // Verdict: the chain's once the duel is closed (final scores, winner), the race's snapshot before.
+  const official = !!view && view.status >= STATUS.FINISHED;
+  const myScore = official ? view!.score[mySlot] : outcome.myScore;
+  const oppScore = official ? view!.score[mySlot === 0 ? 1 : 0] : outcome.oppScore;
+  const decided = official && view!.winner !== 255;
+  const draw = decided ? view!.winner === 2 : Math.abs(myScore - oppScore) < 0.0005;
+  const won = !draw && (decided ? view!.winner === mySlot : myScore > oppScore);
+  const gap = Math.abs(myScore - oppScore);
   const prize = (stake * 2 * 0.95).toFixed(2);
   const accent = draw ? "#2de2ff" : won ? "#ffc861" : "#ff3b5c";
 
@@ -87,16 +91,16 @@ export function Result({
     if (currentDuel === null) return;
     shareOnX({
       result: draw ? "DRAW" : won ? "SURVIVED" : "EXTINCT",
-      myScore: outcome.myScore,
-      oppScore: outcome.oppScore,
+      myScore,
+      oppScore,
       basket: outcome.myBasket,
       prize: won ? Number(prize) : 0,
       duelId: currentDuel,
     });
   };
 
-  const first = won || draw ? { p: me, s: outcome.myScore, c: ME, you: true } : { p: rival, s: outcome.oppScore, c: OPP, you: false };
-  const second = won || draw ? { p: rival, s: outcome.oppScore, c: OPP, you: false } : { p: me, s: outcome.myScore, c: ME, you: true };
+  const first = won || draw ? { p: me, s: myScore, c: ME, you: true } : { p: rival, s: oppScore, c: OPP, you: false };
+  const second = won || draw ? { p: rival, s: oppScore, c: OPP, you: false } : { p: me, s: myScore, c: ME, you: true };
 
   const status = settled
     ? { text: "Settled on Solana, profile updated", color: "#3dff8a", pulse: false }
@@ -133,7 +137,7 @@ export function Result({
             {draw ? "Dead heat" : won ? "Victory" : "Defeat"}
           </h1>
           <p className="mt-2 font-display text-sm uppercase tracking-[0.2em] text-white/60">
-            {draw ? "Same line, same time" : won ? `You crossed first, ${gap.toFixed(2)}% ahead` : `${rival.name} crossed first, ${gap.toFixed(2)}% ahead`}
+            {draw ? "Same line, same time" : won ? `You crossed first, ${gap.toFixed(3)}% ahead` : `${rival.name} crossed first, ${gap.toFixed(3)}% ahead`}
           </p>
         </div>
 
